@@ -198,7 +198,14 @@ export default {
     const workTreeData = ref([])
     const defaultProps = {
       children: 'articles',
-      label: node => node.work_name || node.title
+      label: node => {
+        // 如果是作品节点，显示作品名称
+        if ('work_name' in node) {
+          return node.work_name
+        }
+        // 如果是文章节点，显示文章标题
+        return node.title
+      }
     }
     const router = useRouter()
 
@@ -318,12 +325,12 @@ export default {
       dialogVisible.value = false
       loading.value = true
 
-      // 分段处理文本
-      const SEGMENT_SIZE = 1000
+      // 从localStorage获取分片大小设置
+      const chunkSize = parseInt(localStorage.getItem('chunkSize')) || 5000
       const content = form.value.content.trim()
       const segments = []
-      for (let i = 0; i < content.length; i += SEGMENT_SIZE) {
-        segments.push(content.slice(i, i + SEGMENT_SIZE))
+      for (let i = 0; i < content.length; i += chunkSize) {
+        segments.push(content.slice(i, i + chunkSize))
       }
 
       // 显示总段数

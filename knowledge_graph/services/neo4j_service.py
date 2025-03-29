@@ -8,11 +8,12 @@ class Neo4jService:
     def __init__(self):
         """初始化 Neo4j 连接"""
         try:
-            # 从环境变量或设置中获取连接信息
+            # 从设置中获取连接信息
             neo4j_uri = getattr(settings, 'NEO4J_URI', "bolt://localhost:7687")
             neo4j_user = getattr(settings, 'NEO4J_USER', "neo4j")
             neo4j_password = getattr(settings, 'NEO4J_PASSWORD', "root123321")
             
+            logger.info(f"正在连接Neo4j: {neo4j_uri}")
             self.graph = Graph(neo4j_uri, auth=(neo4j_user, neo4j_password))
             logger.info("Neo4j 连接成功")
         except Exception as e:

@@ -80,13 +80,26 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# 判断是否在Docker环境中运行
+IS_DOCKER = os.getenv('IS_DOCKER', 'false').lower() == 'true'
+
+if IS_DOCKER:
+    # Docker环境配置
+    DB_HOST = 'myproject-mysql-1'
+    NEO4J_URI = "bolt://myproject-neo4j-1:7687"
+else:
+    # 本地环境配置
+    DB_HOST = 'localhost'
+    NEO4J_URI = "bolt://localhost:7687"
+
+# 数据库配置
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.getenv('MYSQL_DATABASE', 'knowledge_graph'),
         'USER': os.getenv('MYSQL_USER', 'root'),
-        'PASSWORD': os.getenv('MYSQL_PASSWORD', '123456'),
-        'HOST': os.getenv('MYSQL_HOST', 'myproject-mysql-1'),  # 修改为正确的容器名
+        'PASSWORD': os.getenv('MYSQL_PASSWORD', 'root123'),
+        'HOST': os.getenv('MYSQL_HOST', DB_HOST),
         'PORT': os.getenv('MYSQL_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
@@ -138,28 +151,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Neo4j 配置
+# Neo4j配置
+NEO4J_USER = "neo4j"
+NEO4J_PASSWORD = "root123321"
 NEO4J_CONFIG = {
-    'uri': os.getenv('NEO4J_URI'),
-    'auth': (os.getenv('NEO4J_USER'), os.getenv('NEO4J_PASSWORD'))
+    'uri': NEO4J_URI,
+    'auth': (NEO4J_USER, NEO4J_PASSWORD)
 }
-
-# 环境变量配置
-NEO4J_URI = os.getenv('NEO4J_URI')
-NEO4J_USER = os.getenv('NEO4J_USER')
-NEO4J_PASSWORD = os.getenv('NEO4J_PASSWORD')
-
-# 如果环境变量未设置，使用默认值
-if not NEO4J_URI:
-    NEO4J_URI = 'bolt://myproject-neo4j-1:7687'
-if not NEO4J_USER:
-    NEO4J_USER = 'neo4j'
-if not NEO4J_PASSWORD:
-    NEO4J_PASSWORD = 'root123321'
-
-# 更新配置
-NEO4J_CONFIG['uri'] = NEO4J_URI
-NEO4J_CONFIG['auth'] = (NEO4J_USER, NEO4J_PASSWORD)
 
 # CSRF 设置
 CSRF_TRUSTED_ORIGINS = [
@@ -221,4 +219,10 @@ LOGGING = {
 # DeepSeek API 配置
 DEEPSEEK_API_KEY = 'sk-b9442327e331494dbe25d7c9162bf5c3'
 DEEPSEEK_API_TIMEOUT = (10, 60)  # (连接超时, 读取超时)
-DEEPSEEK_CHUNK_SIZE = 5000  # 每块字符数
+DEEPSEEK_CHUNK_SIZE = 3000  # 每块字符数
+DEEPSEEK_MAX_RETRIES = 3  # 最大重试次数
+DEEPSEEK_RETRY_DELAY = 1  # 重试延迟（秒）
+
+# 文章分析配置
+ARTICLE_CHUNK_SIZE = 3000  # 文章切片大小
+ARTICLE_CHUNK_OVERLAP = 500  # 切片重叠部分大小

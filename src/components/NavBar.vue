@@ -9,6 +9,7 @@
       <router-link to="/work-analysis" class="nav-link">人物知识图谱</router-link>
       <router-link to="/character-details" class="nav-link">人物详情</router-link>
       <router-link to="/events" class="nav-link">事件列表</router-link>
+      <router-link to="/settings" class="nav-link">设置</router-link>
     </div>
   </nav>
 </template>

@@ -14,7 +14,7 @@
             <el-option
               v-for="work in workList"
               :key="work.id"
-              :label="work.title"
+              :label="work.display_name || work.work_name"
               :value="work.id"
             />
           </el-select>

@@ -6,6 +6,7 @@ import WorkAnalysis from '../components/WorkAnalysis.vue'
 import CharacterDetails from '../views/CharacterDetails.vue'
 import Events from '../views/Events.vue'
 import Factions from '../views/Factions.vue'
+import Settings from '../views/Settings.vue'
 
 console.log('router/index.js 执行')
 
@@ -43,6 +44,11 @@ const routes = [
         path: '/factions',
         name: 'Factions',
         component: Factions
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: Settings
       }
     ]
   },

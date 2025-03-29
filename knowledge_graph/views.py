@@ -561,17 +561,16 @@ def article_list(request):
         # 构建响应数据
         data = []
         for work in works:
-                work_data = {
-                    'work_id': work.id,
-                    'work_name': work.name,
-                    'articles': [{
-                        'id': article.id,
-                        'title': article.title,
-                    'work_id': work.id,  # 添加 work_id
+            work_data = {
+                'id': work.id,  # 修改 work_id 为 id
+                'work_name': work.name,  # 保持 work_name
+                'articles': [{
+                    'id': article.id,
+                    'title': article.title,
                     'created_at': article.created_at.strftime('%Y-%m-%d %H:%M:%S')
                 } for article in work.articles.all()]
-                }
-                data.append(work_data)
+            }
+            data.append(work_data)
         
         return JsonResponse({
             'code': 0,
@@ -1065,84 +1064,64 @@ def delete_article(request, article_id):
 def work_list(request):
     """获取作品列表"""
     try:
-        # 1. 从MySQL获取作品数据
-        mysql_works = Work.objects.all().values('id', 'name')
-        mysql_work_map = {str(w['id']): w['name'] for w in mysql_works}
-        
-        # 2. 从Neo4j获取作品数据
+        # 从Neo4j获取作品列表
         session = get_graph()
-        neo4j_result = session.run("""
-            MATCH (w:Work)
-            WHERE w.name IS NOT NULL AND w.name <> ''
-            RETURN w.id as id, w.name as name
-        """)
-        neo4j_works = neo4j_result.data()
-        neo4j_work_map = {w['id']: w['name'] for w in neo4j_works}
+        neo4j_works = session.run("MATCH (w:Work) RETURN w.id as id, w.name as name").data()
+        session.close()
         
-        # 3. 检查数据一致性
-        all_work_ids = set(mysql_work_map.keys()) | set(neo4j_work_map.keys())
+        # 从MySQL获取作品列表
+        mysql_works = Work.objects.all().values('id', 'name')
+        mysql_work_dict = {str(work['id']): work['name'] for work in mysql_works}
+        
+        # 同步作品数据
+        for work in neo4j_works:
+            work_id = work['id']
+            neo4j_name = work['name']
+            
+            # 如果MySQL中没有这个作品，或者名称不同，则更新
+            if work_id not in mysql_work_dict or mysql_work_dict[work_id] != neo4j_name:
+                try:
+                    # 先尝试通过ID获取
+                    work_obj = Work.objects.filter(id=work_id).first()
+                    if work_obj:
+                        # 如果存在，更新名称
+                        work_obj.name = neo4j_name
+                        work_obj.save()
+                    else:
+                        # 如果不存在，尝试通过名称获取或创建
+                        work_obj, created = Work.objects.get_or_create(
+                            name=neo4j_name,
+                            defaults={'id': work_id}
+                        )
+                        if not created:
+                            # 如果已存在同名作品，更新ID
+                            work_obj.id = work_id
+                            work_obj.save()
+                except Exception as e:
+                    logger.error(f"处理作品时出错: {str(e)}")
+                    continue
+        
+        # 返回最新的作品列表，确保ID和名称的一致性
+        works = Work.objects.all().values('id', 'name').order_by('id')
         works_list = []
-        
-        for work_id in all_work_ids:
-            mysql_name = mysql_work_map.get(work_id)
-            neo4j_name = neo4j_work_map.get(work_id)
+        for work in works:
+            works_list.append({
+                'id': str(work['id']),  # 确保ID是字符串类型
+                'name': work['name'],
+                'display_name': f"{work['name']} ({work['id']})"  # 添加显示名称
+            })
             
-            # 如果两边都有数据但不一致，以Neo4j为准
-            if mysql_name and neo4j_name and mysql_name != neo4j_name:
-                Work.objects.filter(id=work_id).update(name=neo4j_name)
-                logger.info(f"更新MySQL作品名称: id={work_id}, old={mysql_name}, new={neo4j_name}")
-                works_list.append({
-                    'id': work_id,
-                    'title': neo4j_name
-                })
-            
-            # 如果只有MySQL有数据，添加到Neo4j
-            elif mysql_name and not neo4j_name:
-                session.run("""
-                    CREATE (w:Work {id: $id, name: $name})
-                """, id=work_id, name=mysql_name)
-                logger.info(f"添加作品到Neo4j: id={work_id}, name={mysql_name}")
-                works_list.append({
-                    'id': work_id,
-                    'title': mysql_name
-                })
-            
-            # 如果只有Neo4j有数据，添加到MySQL
-            elif neo4j_name and not mysql_name:
-                Work.objects.create(id=work_id, name=neo4j_name)
-                logger.info(f"添加作品到MySQL: id={work_id}, name={neo4j_name}")
-                works_list.append({
-                    'id': work_id,
-                    'title': neo4j_name
-                })
-            
-            # 如果两边数据一致，直接添加
-            else:
-                works_list.append({
-                    'id': work_id,
-                    'title': mysql_name or neo4j_name
-                })
-        
-        # 4. 按作品名称排序
-        works_list.sort(key=lambda x: x['title'])
-        
-        logger.info(f"获取到的作品列表: {works_list}")
-        
         return JsonResponse({
             'code': 0,
             'message': 'success',
             'data': works_list
         })
-        
     except Exception as e:
-        logger.error(f"获取作品列表失败: {str(e)}", exc_info=True)
+        logger.error(f"获取作品列表失败: {str(e)}")
         return JsonResponse({
             'code': 1,
-            'message': f"获取作品列表失败: {str(e)}"
+            'message': f'获取作品列表失败: {str(e)}'
         })
-    finally:
-        if session:
-            session.close()
 
 @api_view(['GET'])
 def get_article_graph_data(request, article_id):
@@ -1279,12 +1258,24 @@ def get_graph_data(request, work_id=None):
                 })
         
         # 获取所有作品列表
-        works = Work.objects.all().values('id', 'name')
-        works_list = list(works)
+        works = Work.objects.all().values('id', 'name').order_by('id')
+        works_list = []
+        for work in works:
+            works_list.append({
+                'id': str(work['id']),  # 确保ID是字符串类型
+                'name': work['name'],
+                'display_name': f"{work['name']} ({work['id']})"  # 添加显示名称
+            })
         logger.info(f"获取到作品列表: {works_list}")
         
         # 获取当前作品信息
         current_work = Work.objects.filter(id=work_id).values('id', 'name').first()
+        if current_work:
+            current_work = {
+                'id': str(current_work['id']),
+                'name': current_work['name'],
+                'display_name': f"{current_work['name']} ({current_work['id']})"
+            }
         logger.info(f"当前作品信息: {current_work}")
         
         # 构建 Neo4j 查询
@@ -1306,53 +1297,27 @@ def get_graph_data(request, work_id=None):
             type: 'force'
         }) as forces
         
-        WITH characters + forces as nodes
+        OPTIONAL MATCH (e:Event)-[:BELONGS_TO]->(w)
+        WITH w, characters, forces, COLLECT(DISTINCT {
+            name: e.name,
+            description: e.description,
+            type: 'event',
+            time: e.time,
+            location: e.location
+        }) as events
         
-        OPTIONAL MATCH (c1:Character)-[r]-(c2:Character)
-        WHERE c1.name IN [n.name | n IN nodes] 
-        AND c2.name IN [n.name | n IN nodes]
-        AND type(r) <> 'BELONGS_TO'
-        
-        WITH nodes, COLLECT(DISTINCT {
-            source: c1.name,
-            target: c2.name,
-            type: type(r),
-            chinese_type: CASE type(r)
-                WHEN 'SPOUSE' THEN '配偶'
-                WHEN 'FRIEND' THEN '朋友'
-                WHEN 'ENEMY' THEN '敌人'
-                WHEN 'FAMILY' THEN '家人'
-                WHEN 'MASTER_APPRENTICE' THEN '师徒'
-                WHEN 'MONARCH_MINISTER' THEN '君臣'
-                ELSE type(r)
-            END
-        }) as character_relations
-        
-        OPTIONAL MATCH (c:Character)-[r:BELONGS_TO]->(f:Force)
-        WHERE c.name IN [n.name | n IN nodes]
-        AND f.name IN [n.name | n IN nodes]
-        
-        WITH nodes, character_relations + COLLECT(DISTINCT {
-            source: c.name,
-            target: f.name,
-            type: 'BELONGS_TO',
-            chinese_type: '归属'
-        }) as all_relations
-        
-        RETURN nodes, all_relations as links
+        RETURN {
+            characters: characters,
+            forces: forces,
+            events: events
+        } as data
         """
         
-        logger.info(f"执行Neo4j查询: {query}")
-        result = session.run(query, work_id=str(work_id))
-        data = result.data()
-        logger.info(f"Neo4j查询结果: {data}")
-        
+        result = session.run(query, work_id=str(work_id)).data()
         session.close()
         
-        record = data[0] if data else None
-        
-        if not record:
-            logger.info("未找到图谱数据")
+        if not result:
+            logger.warning(f"未找到作品 {work_id} 的数据")
             return JsonResponse({
                 'code': 0,
                 'message': 'success',
@@ -1364,30 +1329,57 @@ def get_graph_data(request, work_id=None):
                 }
             })
         
-        response_data = {
+        data = result[0]['data']
+        
+        # 构建节点和关系数据
+        nodes = []
+        links = []
+        
+        # 添加人物节点
+        for char in data['characters']:
+            nodes.append({
+                'id': char['name'],
+                'name': char['name'],
+                'type': 'character',
+                'description': char.get('description', ''),
+                'faction': char.get('faction', '')
+            })
+        
+        # 添加势力节点
+        for force in data['forces']:
+            nodes.append({
+                'id': force['name'],
+                'name': force['name'],
+                'type': 'force',
+                'description': force.get('description', '')
+            })
+        
+        # 添加事件节点
+        for event in data['events']:
+            nodes.append({
+                'id': event['name'],
+                'name': event['name'],
+                'type': 'event',
+                'description': event.get('description', ''),
+                'time': event.get('time', ''),
+                'location': event.get('location', '')
+            })
+        
+        return JsonResponse({
             'code': 0,
             'message': 'success',
             'data': {
-                'nodes': [node for node in record['nodes'] if node],
-                'links': [link for link in record['links'] if link],
+                'nodes': nodes,
+                'links': links,
                 'current_work': current_work,
                 'works': works_list
             }
-        }
-        logger.info(f"返回数据: {response_data}")
-        return JsonResponse(response_data)
-        
+        })
     except Exception as e:
         logger.error(f"获取知识图谱数据失败: {str(e)}", exc_info=True)
         return JsonResponse({
             'code': 1,
-            'message': f'获取知识图谱数据失败: {str(e)}',
-            'data': {
-                'nodes': [],
-                'links': [],
-                'current_work': None,
-                'works': []
-            }
+            'message': f'获取失败: {str(e)}'
         })
 
 @api_view(['POST'])
