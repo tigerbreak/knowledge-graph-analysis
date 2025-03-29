@@ -8,4 +8,5 @@ data:
   MYSQL_PORT: "3306"
   NEO4J_URI: "bolt://neo4j-service:7687"  # 使用k8s service名称
   NEO4J_USER: "neo4j"
-  DEBUG: "0" 
+  DEBUG: "0"
+  IS_K8S: "true"  # 添加k8s环境标识 

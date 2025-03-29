@@ -82,8 +82,13 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 # 判断是否在Docker环境中运行
 IS_DOCKER = os.getenv('IS_DOCKER', 'false').lower() == 'true'
+IS_K8S = os.getenv('IS_K8S', 'false').lower() == 'true'
 
-if IS_DOCKER:
+if IS_K8S:
+    # K8s环境配置
+    DB_HOST = 'mysql-service'
+    NEO4J_URI = "bolt://neo4j-service:7687"
+elif IS_DOCKER:
     # Docker环境配置
     DB_HOST = 'myproject-mysql-1'
     NEO4J_URI = "bolt://myproject-neo4j-1:7687"
