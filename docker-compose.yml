@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: frontend.Dockerfile
+    image: knowledge-graph-frontend:v1.0.1
     container_name: knowledge_graph_frontend  # 前端容器名，可根据项目修改
     ports:
       - "80:80"  # 前端端口映射，可根据需要修改
@@ -35,9 +36,11 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
+    image: knowledge-graph-backend:v1.0.1
     ports:
       - "8000:8000"  # 后端端口映射，可根据需要修改
     environment:
+      IS_DOCKER: "true"  # 添加Docker环境标识
       DEBUG: 0  # 生产环境建议设置为 0
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-root123321}
