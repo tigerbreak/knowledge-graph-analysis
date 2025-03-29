@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: myproject-frontend:latest  # 需要替换为你的镜像地址
+        image: knowledge-graph-frontend:v1.0.1 # 需要替换为你的镜像地址
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
