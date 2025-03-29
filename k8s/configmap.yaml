@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knowledge-graph-config
+data:
+  MYSQL_DATABASE: "knowledge_graph"
+  MYSQL_HOST: "mysql-service"  # 使用k8s service名称
+  MYSQL_PORT: "3306"
+  NEO4J_URI: "bolt://neo4j-service:7687"  # 使用k8s service名称
+  NEO4J_USER: "neo4j"
+  DEBUG: "0" 

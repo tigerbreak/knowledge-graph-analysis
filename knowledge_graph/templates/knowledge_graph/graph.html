@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>人物关系图谱</title>
+    <script src="https://cdn.jsdelivr.net/npm/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style type="text/css">
+        #mynetwork {
+            width: 100%;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+        .controls {
+            margin: 20px;
+        }
+        select, textarea, button {
+            margin: 10px;
+            padding: 5px;
+        }
+        textarea {
+            width: 90%;
+            height: 200px;
+        }
+        .error {
+            color: red;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div>
+            <select id="sourceSelect">
+                <option value="红楼梦">红楼梦</option>
+                <option value="三国演义">三国演义</option>
+                <option value="水浒传">水浒传</option>
+                <option value="西游记">西游记</option>
+            </select>
+        </div>
+        <div>
+            <textarea id="textInput" placeholder="请输入要分析的文本..."></textarea>
+        </div>
+        <div>
+            <button onclick="analyzeText()">分析文本</button>
+            <button onclick="filterBySource()">筛选显示</button>
+        </div>
+        <div id="error" class="error"></div>
+    </div>
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+        // 创建数据集
+        var nodes = new vis.DataSet();
+        var edges = new vis.DataSet();
+
+        // 配置选项
+        var options = {
+            nodes: {
+                shape: 'dot',
+                size: 30,
+                font: {
+                    size: 16,
+                    color: '#333'
+                },
+                borderWidth: 2,
+                color: {
+                    background: '#97C2FC',
+                    border: '#2B7CE9',
+                    highlight: {
+                        background: '#D2E5FF',
+                        border: '#2B7CE9'
+                    }
+                }
+            },
+            edges: {
+                width: 2,
+                color: {
+                    color: '#848484',
+                    highlight: '#848484',
+                    hover: '#848484'
+                },
+                font: {
+                    size: 14,
+                    color: '#666',
+                    strokeWidth: 0,
+                    align: 'middle'
+                },
+                arrows: {
+                    to: {
+                        enabled: true,
+                        scaleFactor: 0.5
+                    }
+                },
+                smooth: {
+                    type: 'continuous'
+                }
+            },
+            physics: {
+                enabled: true,
+                barnesHut: {
+                    gravitationalConstant: -2000,
+                    centralGravity: 0.3,
+                    springLength: 200,
+                    springConstant: 0.04,
+                    damping: 0.09,
+                    avoidOverlap: 0.1
+                },
+                stabilization: {
+                    iterations: 1000
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                hideEdgesOnDrag: false,
+                navigationButtons: true,
+                keyboard: true
+            }
+        };
+
+        // 创建网络
+        var container = document.getElementById('mynetwork');
+        var network = new vis.Network(container, {nodes: nodes, edges: edges}, options);
+
+        // 分析文本
+        async function analyzeText() {
+            const text = document.getElementById('textInput').value;
+            const source = document.getElementById('sourceSelect').value;
+            const errorDiv = document.getElementById('error');
+            
+            if (!text.trim()) {
+                errorDiv.textContent = '请输入文本内容';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ai/generate_from_text/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        source: source
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('接收到的数据:', data);
+                
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    return;
+                }
+
+                // 清空现有数据
+                nodes.clear();
+                edges.clear();
+
+                // 添加节点
+                if (data.nodes && Array.isArray(data.nodes)) {
+                    console.log('添加节点:', data.nodes);
+                    const nodeData = data.nodes.map(node => ({
+                        id: node.id,
+                        label: node.name,
+                        title: node.description,
+                        source: source
+                    }));
+                    nodes.add(nodeData);
+                    console.log('节点添加成功:', nodeData);
+                }
+
+                // 添加边
+                if (data.edges && Array.isArray(data.edges)) {
+                    console.log('添加边:', data.edges);
+                    const edgeData = data.edges.map(edge => ({
+                        id: edge.id || `${edge.source}-${edge.target}`,
+                        from: parseInt(edge.source),
+                        to: parseInt(edge.target),
+                        label: edge.type,
+                        title: edge.description,
+                        arrows: {
+                            to: {
+                                enabled: true,
+                                scaleFactor: 0.5
+                            }
+                        }
+                    }));
+                    edges.add(edgeData);
+                    console.log('边添加成功:', edgeData);
+                }
+
+                // 打印最终的节点和边数量
+                console.log('节点数量:', nodes.length);
+                console.log('边数量:', edges.length);
+
+                // 更新网络布局
+                network.setData({nodes: nodes, edges: edges});
+                network.stabilize(1000);
+                network.fit();
+
+                errorDiv.textContent = '';
+            } catch (error) {
+                errorDiv.textContent = `错误：${error.message}`;
+                console.error('Error:', error);
+            }
+        }
+
+        // 按来源筛选
+        function filterBySource() {
+            const source = document.getElementById('sourceSelect').value;
+            
+            // 过滤节点
+            const allNodes = nodes.get();
+            const visibleNodes = allNodes.filter(node => node.source === source);
+            nodes.update(allNodes.map(node => ({
+                ...node,
+                hidden: node.source !== source
+            })));
+
+            // 过滤边
+            const allEdges = edges.get();
+            edges.update(allEdges.map(edge => ({
+                ...edge,
+                hidden: !visibleNodes.find(n => n.id === edge.from) || 
+                        !visibleNodes.find(n => n.id === edge.to)
+            })));
+        }
+
+        // 初始加载
+        filterBySource();
+    </script>
+</body>
+</html> 
