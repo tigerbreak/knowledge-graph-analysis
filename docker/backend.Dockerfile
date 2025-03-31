@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 COPY manage.py .
 COPY myproject/ ./myproject/
-COPY knowledge_graph/ ./knowledge_graph/
+COPY backend/knowledge_graph/ ./knowledge_graph/
 COPY myapp/ ./myapp/
 
 # 安装 Python 依赖

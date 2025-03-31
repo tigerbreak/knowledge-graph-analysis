@@ -5,13 +5,13 @@ FROM node:16-alpine as build-stage
 WORKDIR /app
 
 # 复制 package.json 和 package-lock.json
-COPY package*.json ./
+COPY frontend/package*.json ./
 
 # 安装依赖
 RUN npm install
 
 # 复制源代码
-COPY . .
+COPY frontend/ .
 
 # 构建应用
 RUN npm run build
@@ -29,27 +29,4 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 # 启动 Nginx
-CMD ["nginx", "-g", "daemon off;"]
-
-FROM python:3.9
-
-WORKDIR /app
-
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    default-libmysqlclient-dev \
-    build-essential \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
-# 复制依赖文件
-COPY requirements.txt .
-
-# 安装Python依赖
-RUN pip install -r requirements.txt
-
-# 复制项目文件
-COPY . .
-
-# 暴露端口
-EXPOSE 8000 
+CMD ["nginx", "-g", "daemon off;"] 
