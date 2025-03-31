@@ -13,10 +13,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from django.db import connection
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# 添加 backend 目录到 Python 路径
+sys.path.insert(0, str(BASE_DIR))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -40,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'knowledge_graph',
+    'backend.knowledge_graph',
     'corsheaders',
 ]
 

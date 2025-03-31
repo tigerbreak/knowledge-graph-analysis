@@ -19,8 +19,8 @@ x-mysql-variables: &mysql-variables
 services:
   frontend:
     build:
-      context: .
-      dockerfile: frontend.Dockerfile
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
     image: knowledge-graph-frontend:v1.0.1
     container_name: knowledge_graph_frontend  # 前端容器名，可根据项目修改
     ports:
@@ -34,8 +34,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend.Dockerfile
+      context: ..
+      dockerfile: docker/backend.Dockerfile
     image: knowledge-graph-backend:v1.0.1
     ports:
       - "8000:8000"  # 后端端口映射，可根据需要修改

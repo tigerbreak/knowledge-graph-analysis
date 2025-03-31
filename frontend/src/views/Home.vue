@@ -13,7 +13,7 @@
           <template #header>
             <div class="card-header">
               <h3>文章分析</h3>
-              <el-icon><document /></el-icon>
+              <el-icon><Document /></el-icon>
             </div>
           </template>
           <div class="feature-content">
@@ -33,7 +33,7 @@
           <template #header>
             <div class="card-header">
               <h3>知识图谱</h3>
-              <el-icon><share /></el-icon>
+              <el-icon><Share /></el-icon>
             </div>
           </template>
           <div class="feature-content">
@@ -53,7 +53,7 @@
           <template #header>
             <div class="card-header">
               <h3>人物档案</h3>
-              <el-icon><user /></el-icon>
+              <el-icon><User /></el-icon>
             </div>
           </template>
           <div class="feature-content">
@@ -73,7 +73,7 @@
           <template #header>
             <div class="card-header">
               <h3>事件时间线</h3>
-              <el-icon><timer /></el-icon>
+              <el-icon><Timer /></el-icon>
             </div>
           </template>
           <div class="feature-content">
@@ -91,18 +91,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { Document, Share, User, Timer } from '@element-plus/icons-vue'
-
-export default {
-  name: 'Home',
-  components: {
-    Document,
-    Share,
-    User,
-    Timer
-  }
-}
 </script>
 
 <style scoped>
