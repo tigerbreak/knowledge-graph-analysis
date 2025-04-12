@@ -5,6 +5,7 @@ set -e
 
 # 设置默认值
 PROJECT_NAME=${PROJECT_NAME:-"myproject"}
+GITHUB_REPO=${GITHUB_REPO:-"https://github.com/tigerbreak/knowledge-graph-analysis.git"}
 
 # 本地日志函数
 log() {
@@ -17,6 +18,7 @@ if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ]; th
     log "SERVER_IP: $SERVER_IP"
     log "SERVER_USER: $SERVER_USER"
     log "PROJECT_NAME: $PROJECT_NAME"
+    log "GITHUB_REPO: $GITHUB_REPO"
     exit 1
 fi
 
@@ -25,7 +27,6 @@ REMOTE_HOST="$SERVER_IP"
 REMOTE_USER="$SERVER_USER"
 REMOTE_PASS="$SERVER_PASSWORD"
 PROJECT_DIR="/root/$PROJECT_NAME"
-GITHUB_REPO="https://github.com/tigerbreak/knowledge-graph-analysis.git"
 DEPLOY_BRANCH="release/v1.0.3"
 
 # 输出环境变量信息（不包含密码）
@@ -42,13 +43,14 @@ SSHPASS="sshpass -p $REMOTE_PASS"
 
 # 在远程服务器上执行部署命令
 log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && bash -s" << 'EOF'
+$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && export GITHUB_REPO='$GITHUB_REPO' && bash -s" << 'EOF'
     set -e
     
     # 输出当前目录和环境变量
     echo "当前目录：$(pwd)"
     echo "项目名称：$PROJECT_NAME"
     echo "项目目录：$PROJECT_DIR"
+    echo "GitHub仓库：$GITHUB_REPO"
     
     # 进入项目目录
     echo "创建项目目录：$PROJECT_DIR"
