@@ -16,19 +16,11 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Test Docker Compose
-        run: |
-          cd deploy/beta
-          docker-compose config
-          
-      - name: Install deployment dependencies
+      - name: Install sshpass
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
-          
+      
       - name: Deploy to server
         run: |
           chmod +x deploy/deploy.sh
