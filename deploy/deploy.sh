@@ -106,9 +106,9 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
         cp .env.example .env
     fi
     
-    # 进入部署目录
-    cd deploy || {
-        echo "无法进入部署目录"
+    # 进入 Docker 目录
+    cd docker || {
+        echo "无法进入 Docker 目录"
         exit 1
     }
     
