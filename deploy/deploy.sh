@@ -32,6 +32,7 @@ DEPLOY_BRANCH="release/v1.0.3"
 log "部署配置信息："
 log "远程主机：$REMOTE_HOST"
 log "远程用户：$REMOTE_USER"
+log "项目名称：$PROJECT_NAME"
 log "项目目录：$PROJECT_DIR"
 log "GitHub仓库：$GITHUB_REPO"
 log "部署分支：$DEPLOY_BRANCH"
@@ -41,11 +42,13 @@ SSHPASS="sshpass -p $REMOTE_PASS"
 
 # 在远程服务器上执行部署命令
 log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << "EOF"
+$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && bash -s" << 'EOF'
     set -e
     
-    # 输出当前目录
+    # 输出当前目录和环境变量
     echo "当前目录：$(pwd)"
+    echo "项目名称：$PROJECT_NAME"
+    echo "项目目录：$PROJECT_DIR"
     
     # 进入项目目录
     echo "创建项目目录：$PROJECT_DIR"
