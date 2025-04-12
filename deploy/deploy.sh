@@ -64,11 +64,33 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     if [ ! -d ".git" ]; then
         echo "正在克隆代码仓库..."
         git clone "$GITHUB_REPO" .
-        git checkout "$DEPLOY_BRANCH"
+        if [ $? -ne 0 ]; then
+            echo "错误：克隆仓库失败"
+            exit 1
+        fi
+        echo "正在切换到分支：$DEPLOY_BRANCH"
+        git checkout "$DEPLOY_BRANCH" || {
+            echo "错误：切换分支失败"
+            exit 1
+        }
     else
         echo "正在更新代码..."
-        git fetch --all
-        git reset --hard "origin/$DEPLOY_BRANCH"
+        # 显示当前 Git 状态
+        echo "当前 Git 状态："
+        git status
+        # 显示远程仓库信息
+        echo "远程仓库信息："
+        git remote -v
+        # 获取所有远程分支
+        git fetch --all || {
+            echo "错误：获取远程分支失败"
+            exit 1
+        }
+        # 重置到指定分支
+        git reset --hard "origin/$DEPLOY_BRANCH" || {
+            echo "错误：重置分支失败"
+            exit 1
+        }
     fi
     
     # 检查并创建必要的目录
