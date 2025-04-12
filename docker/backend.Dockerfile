@@ -27,7 +27,7 @@ COPY requirements.txt .
 COPY backend/ ./backend/
 
 # 复制本地依赖包
-COPY packages/ ./packages/
+COPY docker/packages/ ./packages/
 
 # 安装依赖
 RUN if [ -d "packages" ]; then \
