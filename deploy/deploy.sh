@@ -112,9 +112,18 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
         exit 1
     }
     
+    # 显示当前目录和文件列表
+    echo "当前目录：$(pwd)"
+    echo "目录内容："
+    ls -la
+    
     # 停止并删除现有容器
     echo "停止现有服务..."
-    docker-compose down || true
+    if [ -f "docker-compose.yml" ]; then
+        docker-compose down || true
+    else
+        echo "警告：docker-compose.yml 文件不存在"
+    fi
     
     # 清理未使用的镜像和卷
     echo "清理旧的构建缓存..."
@@ -122,7 +131,12 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     
     # 重新构建并启动容器
     echo "开始构建新服务..."
-    docker-compose up --build -d
+    if [ -f "docker-compose.yml" ]; then
+        docker-compose up --build -d
+    else
+        echo "错误：docker-compose.yml 文件不存在"
+        exit 1
+    fi
     
     # 等待服务启动
     echo "等待服务启动..."
