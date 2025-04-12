@@ -1,0 +1,52 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - release/v1.0.3
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Test Docker Compose
+        run: |
+          cd deploy/beta
+          docker-compose config
+          
+      - name: Install deployment dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          
+      - name: Deploy to server
+        run: |
+          chmod +x deploy/deploy.sh
+          ./deploy/deploy.sh
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+          
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "部署成功！"
+          curl -H "Content-Type: application/json" -X POST -d "{\"msg_type\": \"text\",\"content\": {\"text\": \"✅ 项目部署成功\n分支：${{ github.ref }}\n提交：${{ github.sha }}\n触发者：${{ github.actor }}\"}}" ${{ secrets.FEISHU_WEBHOOK_URL }} || true
+          
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "部署失败！"
+          curl -H "Content-Type: application/json" -X POST -d "{\"msg_type\": \"text\",\"content\": {\"text\": \"❌ 项目部署失败\n分支：${{ github.ref }}\n提交：${{ github.sha }}\n触发者：${{ github.actor }}\"}}" ${{ secrets.FEISHU_WEBHOOK_URL }} || true 
