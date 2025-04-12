@@ -6,30 +6,37 @@ on:
       - release/v1.0.3
   workflow_dispatch:
 
+env:
+  SERVER_IP: ${{ secrets.SERVER_IP }}
+  SERVER_USER: ${{ secrets.SERVER_USER }}
+  SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+  PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+
 jobs:
-  deploy:
+  # 初始化服务器环境
+  init-server:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Install sshpass
+
+      - name: Initialize server
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-      
+          chmod +x deploy/init-server.sh
+          ./deploy/init-server.sh
+
+  # 部署应用
+  deploy:
+    needs: init-server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Deploy to server
         run: |
           chmod +x deploy/deploy.sh
           ./deploy/deploy.sh
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
-          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
           
       - name: Notify on success
         if: success()

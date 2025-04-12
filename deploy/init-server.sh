@@ -6,55 +6,63 @@ if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ]; th
     exit 1
 fi
 
-# 定义远程服务器信息
-REMOTE_HOST="$SERVER_IP"
-REMOTE_USER="$SERVER_USER"
-REMOTE_PASS="$SERVER_PASSWORD"
-
 # 使用 sshpass 进行密码登录
-SSHPASS="sshpass -p $REMOTE_PASS"
-
-# 在远程服务器上执行初始化命令
-echo "正在初始化服务器..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
     # 更新系统
-    yum update -y
-    
-    # 安装必要的软件包
-    yum install -y yum-utils device-mapper-persistent-data lvm2
-    
-    # 添加 Docker 仓库
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    
-    # 安装 Docker
-    yum install -y docker-ce docker-ce-cli containerd.io
-    
-    # 启动 Docker 服务
-    systemctl start docker
-    systemctl enable docker
-    
-    # 安装 Docker Compose
-    echo "安装 Docker Compose..."
-    # 下载最新版本的 Docker Compose
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
-    # 添加执行权限
-    chmod +x /usr/local/bin/docker-compose
-    # 创建软链接
-    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    # 验证安装
-    docker-compose --version
-    
-    # 安装 git
-    yum install -y git
-    
-    # 安装 sshpass（用于自动化部署）
-    yum install -y epel-release
-    yum install -y sshpass
-    
+    echo "正在更新系统..."
+    apt-get update -y
+    apt-get upgrade -y
+
+    # 检查并安装必要的包
+    echo "检查并安装必要的包..."
+    for pkg in apt-transport-https ca-certificates curl software-properties-common git sshpass; do
+        if ! dpkg -l | grep -q "^ii  $pkg "; then
+            echo "安装 $pkg..."
+            apt-get install -y $pkg
+        else
+            echo "$pkg 已安装"
+        fi
+    done
+
+    # 检查并安装 Docker
+    if ! command -v docker &> /dev/null; then
+        echo "安装 Docker..."
+        # 添加 Docker 官方 GPG 密钥
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+        # 添加 Docker 仓库
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        # 安装 Docker
+        apt-get update
+        apt-get install -y docker-ce docker-ce-cli containerd.io
+        # 启动 Docker 服务
+        systemctl start docker
+        systemctl enable docker
+    else
+        echo "Docker 已安装"
+    fi
+
+    # 检查并安装 Docker Compose
+    if ! command -v docker-compose &> /dev/null; then
+        echo "安装 Docker Compose..."
+        # 下载 Docker Compose
+        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        # 添加执行权限
+        chmod +x /usr/local/bin/docker-compose
+        # 创建软链接
+        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    else
+        echo "Docker Compose 已安装"
+    fi
+
     # 创建项目目录
-    mkdir -p /root/myproject
-    
-    # 显示安装结果
+    if [ ! -d "/root/$PROJECT_NAME" ]; then
+        echo "创建项目目录..."
+        mkdir -p "/root/$PROJECT_NAME"
+    else
+        echo "项目目录已存在"
+    fi
+
+    # 显示安装的版本
     echo "Docker 版本:"
     docker --version
     echo "Docker Compose 版本:"
