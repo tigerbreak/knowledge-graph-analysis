@@ -27,22 +27,22 @@ SSHPASS="sshpass -p $REMOTE_PASS"
 
 # 在远程服务器上执行部署命令
 log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
+$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << "EOF"
     set -e
     
     # 进入项目目录
-    mkdir -p $PROJECT_DIR
-    cd $PROJECT_DIR
+    mkdir -p "$PROJECT_DIR"
+    cd "$PROJECT_DIR"
     
     # Git 操作
     if [ ! -d ".git" ]; then
         echo "正在克隆代码仓库..."
-        git clone $GITHUB_REPO .
-        git checkout $DEPLOY_BRANCH
+        git clone "$GITHUB_REPO" .
+        git checkout "$DEPLOY_BRANCH"
     else
         echo "正在更新代码..."
         git fetch --all
-        git reset --hard origin/$DEPLOY_BRANCH
+        git reset --hard "origin/$DEPLOY_BRANCH"
     fi
     
     # 检查并创建必要的目录
