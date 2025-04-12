@@ -14,7 +14,7 @@ log() {
 
 # 检查必要的环境变量
 if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ]; then
-    echo "错误：缺少必要的环境变量"
+    log "错误：缺少必要的环境变量"
     exit 1
 fi
 
@@ -114,7 +114,7 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     
     # 停止并删除现有容器
     echo "停止现有服务..."
-    docker-compose -p beta down || true
+    docker-compose down || true
     
     # 清理未使用的镜像和卷
     echo "清理旧的构建缓存..."
@@ -122,7 +122,7 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     
     # 重新构建并启动容器
     echo "开始构建新服务..."
-    docker-compose -p beta up --build -d
+    docker-compose up --build -d
     
     # 等待服务启动
     echo "等待服务启动..."
@@ -130,13 +130,13 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     
     # 检查服务状态
     echo "检查服务状态..."
-    docker-compose -p beta ps
+    docker-compose ps
     
     # 检查容器健康状态
     echo "检查容器健康状态..."
-    if ! docker-compose -p beta ps | grep -q "Up"; then
+    if ! docker-compose ps | grep -q "Up"; then
         echo "错误：部分服务未能正常启动"
-        docker-compose -p beta logs
+        docker-compose logs
         exit 1
     fi
     
@@ -144,7 +144,7 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     echo "检查服务可访问性..."
     curl -f http://localhost:8000/api/health || {
         echo "错误：后端服务未能正常响应"
-        docker-compose -p beta logs backend
+        docker-compose logs backend
         exit 1
     }
 EOF
