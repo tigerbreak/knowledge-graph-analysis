@@ -34,8 +34,15 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
     systemctl enable docker
     
     # 安装 Docker Compose
-    curl -L "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+    echo "安装 Docker Compose..."
+    # 下载最新版本的 Docker Compose
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+    # 添加执行权限
     chmod +x /usr/local/bin/docker-compose
+    # 创建软链接
+    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    # 验证安装
+    docker-compose --version
     
     # 安装 git
     yum install -y git
