@@ -15,6 +15,7 @@ RUN apt-get update \
     && apt-get install -y \
         build-essential \
         libpq-dev \
+        default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 配置pip镜像源
@@ -31,7 +32,7 @@ COPY docker/packages/ ./packages/
 
 # 安装依赖
 RUN if [ -d "packages" ]; then \
-        pip install --no-index --find-links=./packages -r requirements.txt; \
+        pip install --find-links=./packages -r requirements.txt; \
     else \
         pip install -r requirements.txt; \
     fi
