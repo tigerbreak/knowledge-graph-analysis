@@ -27,7 +27,6 @@ COPY requirements.txt .
 COPY manage.py .
 COPY myproject/ ./myproject/
 COPY backend/knowledge_graph/ ./knowledge_graph/
-COPY myapp/ ./myapp/
 
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
