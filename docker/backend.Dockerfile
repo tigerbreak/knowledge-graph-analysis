@@ -10,21 +10,21 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 设置 pip 镜像源
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-
 # 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 升级 pip
+# 配置pip镜像源
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+
+# 升级pip
 RUN pip install --upgrade pip
 
 # 复制项目文件
-COPY requirements.txt .
-COPY backend/ ./backend/
+COPY . .
 
 # 复制本地依赖包
 COPY docker/packages/ ./packages/
@@ -40,4 +40,4 @@ RUN if [ -d "packages" ]; then \
 EXPOSE 8000
 
 # 启动命令
-CMD ["python", "backend/manage.py", "runserver", "0.0.0.0:8000"] 
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"] 
