@@ -3,7 +3,7 @@
 # 设置错误时退出
 set -e
 
-# 日志函数
+# 本地日志函数
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
 }
@@ -27,7 +27,7 @@ SSHPASS="sshpass -p $REMOTE_PASS"
 
 # 在远程服务器上执行部署命令
 log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
     set -e
     
     # 进入项目目录
@@ -36,11 +36,11 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
     
     # Git 操作
     if [ ! -d ".git" ]; then
-        log "正在克隆代码仓库..."
+        echo "正在克隆代码仓库..."
         git clone $GITHUB_REPO .
         git checkout $DEPLOY_BRANCH
     else
-        log "正在更新代码..."
+        echo "正在更新代码..."
         git fetch --all
         git reset --hard origin/$DEPLOY_BRANCH
     fi
@@ -59,37 +59,37 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
     cd deploy
     
     # 停止并删除现有容器
-    log "停止现有服务..."
+    echo "停止现有服务..."
     docker-compose -p beta down || true
     
     # 清理未使用的镜像和卷
-    log "清理旧的构建缓存..."
+    echo "清理旧的构建缓存..."
     docker system prune -f
     
     # 重新构建并启动容器
-    log "开始构建新服务..."
+    echo "开始构建新服务..."
     docker-compose -p beta up --build -d
     
     # 等待服务启动
-    log "等待服务启动..."
+    echo "等待服务启动..."
     sleep 30
     
     # 检查服务状态
-    log "检查服务状态..."
+    echo "检查服务状态..."
     docker-compose -p beta ps
     
     # 检查容器健康状态
-    log "检查容器健康状态..."
+    echo "检查容器健康状态..."
     if ! docker-compose -p beta ps | grep -q "Up"; then
-        log "错误：部分服务未能正常启动"
+        echo "错误：部分服务未能正常启动"
         docker-compose -p beta logs
         exit 1
     fi
     
     # 检查服务可访问性
-    log "检查服务可访问性..."
+    echo "检查服务可访问性..."
     curl -f http://localhost:8000/api/health || {
-        log "错误：后端服务未能正常响应"
+        echo "错误：后端服务未能正常响应"
         docker-compose -p beta logs backend
         exit 1
     }
