@@ -13,12 +13,8 @@ log() {
 }
 
 # 检查必要的环境变量
-if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ]; then
-    log "错误：缺少必要的环境变量"
-    log "SERVER_IP: $SERVER_IP"
-    log "SERVER_USER: $SERVER_USER"
-    log "PROJECT_NAME: $PROJECT_NAME"
-    log "GITHUB_REPO: $GITHUB_REPO"
+if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ]; then
+    echo "错误：缺少必要的环境变量"
     exit 1
 fi
 
@@ -158,4 +154,36 @@ if [ $? -eq 0 ]; then
 else
     log "部署失败！请检查日志"
     exit 1
-fi 
+fi
+
+# 使用 sshpass 进行密码登录
+sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+    # 创建必要的目录
+    echo "创建必要的目录..."
+    mkdir -p "/root/$PROJECT_NAME/deploy"
+    mkdir -p "/root/$PROJECT_NAME/src"
+
+    # 停止现有服务
+    echo "停止现有服务..."
+    cd "/root/$PROJECT_NAME/deploy" || exit
+    if [ -f "docker-compose.yml" ]; then
+        docker-compose down
+    fi
+
+    # 清理旧的构建缓存
+    echo "清理旧的构建缓存..."
+    docker system prune -f
+EOF
+
+# 复制部署文件到服务器
+echo "复制部署文件到服务器..."
+sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no -r deploy/* "$SERVER_USER@$SERVER_IP:/root/$PROJECT_NAME/deploy/"
+sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no -r src/* "$SERVER_USER@$SERVER_IP:/root/$PROJECT_NAME/src/"
+
+# 在服务器上启动服务
+echo "开始构建新服务..."
+sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+    cd "/root/$PROJECT_NAME/deploy" || exit
+    ls -la  # 显示目录内容，用于调试
+    docker-compose up -d --build
+EOF 
