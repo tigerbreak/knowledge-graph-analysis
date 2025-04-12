@@ -56,7 +56,7 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
     fi
     
     # 进入部署目录
-    cd deploy/beta
+    cd deploy
     
     # 停止并删除现有容器
     log "停止现有服务..."
