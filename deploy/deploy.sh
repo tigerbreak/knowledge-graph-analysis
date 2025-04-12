@@ -43,7 +43,7 @@ SSHPASS="sshpass -p $REMOTE_PASS"
 
 # 在远程服务器上执行部署命令
 log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && export GITHUB_REPO='$GITHUB_REPO' && bash -s" << 'EOF'
+$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && export GITHUB_REPO='$GITHUB_REPO' && export DEPLOY_BRANCH='$DEPLOY_BRANCH' && bash -s" << 'EOF'
     set -e
     
     # 输出当前目录和环境变量
@@ -51,6 +51,7 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     echo "项目名称：$PROJECT_NAME"
     echo "项目目录：$PROJECT_DIR"
     echo "GitHub仓库：$GITHUB_REPO"
+    echo "部署分支：$DEPLOY_BRANCH"
     
     # 进入项目目录
     echo "创建项目目录：$PROJECT_DIR"
@@ -86,6 +87,11 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
             echo "错误：获取远程分支失败"
             exit 1
         }
+        # 确保远程分支存在
+        if ! git show-ref --verify --quiet "refs/remotes/origin/$DEPLOY_BRANCH"; then
+            echo "错误：远程分支 origin/$DEPLOY_BRANCH 不存在"
+            exit 1
+        fi
         # 重置到指定分支
         git reset --hard "origin/$DEPLOY_BRANCH" || {
             echo "错误：重置分支失败"
