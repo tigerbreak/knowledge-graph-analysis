@@ -21,7 +21,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # 配置pip镜像源
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+#RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
 # 升级pip
 RUN pip install --upgrade pip
