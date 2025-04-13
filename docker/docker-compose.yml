@@ -55,9 +55,8 @@ services:
     depends_on:
       - neo4j
       - mysql
-    extra_hosts:
-      - "deb.debian.org:146.75.46.132"
-      - "pypi.org:151.101.64.223"
+    volumes:
+      - ./hosts:/etc/hosts:ro
     networks:
       - app-network
 
