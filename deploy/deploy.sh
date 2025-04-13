@@ -5,6 +5,8 @@ set -e
 
 # 设置默认值
 PROJECT_NAME=${PROJECT_NAME:-"myproject"}
+MAX_RETRIES=10
+RETRY_INTERVAL=3
 
 # 本地日志函数
 log() {
@@ -39,58 +41,70 @@ log "项目目录：$PROJECT_DIR"
 log "Docker镜像：$DOCKER_IMAGE"
 log "Git提交：$GITHUB_SHA"
 
-# 登录到服务器
-echo "登录到服务器..."
-sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
-    # 登录到阿里云容器镜像服务
-    echo "登录到阿里云容器镜像服务..."
-    echo "$ALIYUN_PASSWORD" | docker login -u "$ALIYUN_USERNAME" --password-stdin $ALIYUN_REGISTRY
+# 部署函数
+deploy() {
+    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
+        # 登录到阿里云容器镜像服务
+        echo "登录到阿里云容器镜像服务..."
+        echo "$ALIYUN_PASSWORD" | docker login -u "$ALIYUN_USERNAME" --password-stdin $ALIYUN_REGISTRY
 
-    # 拉取最新镜像
-    echo "拉取后端镜像..."
-    docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA"
-    docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
+        # 拉取最新镜像
+        echo "拉取后端镜像..."
+        docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA"
+        docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
 
-    echo "拉取前端镜像..."
-    docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA"
-    docker tag "$DOCKER_IMAGE:frontend-$GITHUB_SHA" "$DOCKER_IMAGE:frontend-latest"
+        echo "拉取前端镜像..."
+        docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA"
+        docker tag "$DOCKER_IMAGE:frontend-$GITHUB_SHA" "$DOCKER_IMAGE:frontend-latest"
 
-    # 进入项目目录
-    cd $PROJECT_DIR
+        # 进入项目目录
+        cd $PROJECT_DIR
 
-    # 停止并删除旧容器
-    echo "停止并删除旧容器..."
-    docker-compose down
+        # 停止并删除旧容器
+        echo "停止并删除旧容器..."
+        docker-compose down
 
-    # 启动新容器
-    echo "启动新容器..."
-    docker-compose up -d
+        # 启动新容器
+        echo "启动新容器..."
+        docker-compose up -d
 
-    # 等待容器启动完成
-    echo "等待容器启动..."
-    sleep 10
+        # 等待容器启动完成
+        echo "等待容器启动..."
+        sleep 10
 
-    # 检查容器状态
-    if docker-compose ps | grep -q "Up"; then
-        echo "新容器启动成功，开始清理旧镜像..."
-        
-        # 获取当前使用的镜像ID
-        CURRENT_IMAGES=$(docker-compose images -q)
-        
-        # 删除所有未被使用的镜像（除了当前正在使用的）
-        docker image prune -af --filter "until=24h" --filter "label!=com.docker.compose.service"
-        
-        echo "旧镜像清理完成！"
-    else
-        echo "容器启动失败，保留旧镜像以便回滚"
-        exit 1
-    fi
+        # 检查容器状态
+        if docker-compose ps | grep -q "Up"; then
+            echo "新容器启动成功，开始清理旧镜像..."
+            
+            # 获取当前使用的镜像ID
+            CURRENT_IMAGES=$(docker-compose images -q)
+            
+            # 删除所有未被使用的镜像（除了当前正在使用的）
+            docker image prune -af --filter "until=24h" --filter "label!=com.docker.compose.service"
+            
+            echo "旧镜像清理完成！"
+        else
+            echo "容器启动失败，保留旧镜像以便回滚"
+            exit 1
+        fi
 EOF
+}
 
-if [ $? -eq 0 ]; then
-    echo "部署成功！"
-    exit 0
-else
-    echo "部署失败！"
-    exit 1
-fi 
+# 执行部署，带重试机制
+attempt=1
+while [ $attempt -le $MAX_RETRIES ]; do
+    log "尝试部署 (第 $attempt 次)"
+    if deploy; then
+        log "部署成功！"
+        exit 0
+    else
+        if [ $attempt -lt $MAX_RETRIES ]; then
+            log "部署失败，${RETRY_INTERVAL}秒后重试..."
+            sleep $RETRY_INTERVAL
+        else
+            log "已达到最大重试次数($MAX_RETRIES)，部署失败"
+            exit 1
+        fi
+    fi
+    attempt=$((attempt + 1))
+done 
