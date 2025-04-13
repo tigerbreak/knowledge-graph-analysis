@@ -82,7 +82,7 @@ services:
     image: mysql:8.0  # MySQL 版本，可根据需要修改
     container_name: myproject-mysql-1  # MySQL 容器名，修改时需要同步修改 MYSQL_HOST
     ports:
-      - "3306:3306"  # MySQL 端口
+      - "3307:3306"  # MySQL 端口，外部访问使用 3307
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-knowledge_graph}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
