@@ -20,6 +20,10 @@ RUN apt-get update \
         default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# 配置 DNS
+RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
+    echo "nameserver 114.114.114.114" >> /etc/resolv.conf
+
 # 配置pip镜像源
 #RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
@@ -34,12 +38,14 @@ COPY docker/packages/ ./packages/
 
 # 安装依赖
 RUN if [ -d "packages" ]; then \
-        # 先安装所有本地包
-        pip install --no-index --find-links=./packages ./packages/*; \
-        # 检查requirements.txt中的依赖是否都已安装
-        pip check -r requirements.txt || \
-        # 如果有缺失的依赖，从远程源安装
-        pip install -r requirements.txt --no-deps; \
+        # 先安装所有兼容的本地包
+        for pkg in ./packages/*.whl; do \
+            if pip download --no-deps "$pkg" >/dev/null 2>&1; then \
+                pip install --no-index --find-links=./packages "$pkg"; \
+            fi \
+        done; \
+        # 从远程源安装剩余依赖
+        pip install -r requirements.txt; \
     else \
         # 如果没有本地包，直接从远程源安装
         pip install -r requirements.txt; \
