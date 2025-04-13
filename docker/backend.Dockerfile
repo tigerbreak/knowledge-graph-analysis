@@ -34,16 +34,8 @@ COPY docker/packages/ ./packages/
 
 # 安装依赖
 RUN if [ -d "packages" ]; then \
-        # 先安装所有兼容的本地包
-        for pkg in ./packages/*.whl; do \
-            if echo "$pkg" | grep -q "none-any\|manylinux\|linux"; then \
-                pip install --no-index --find-links=./packages "$pkg"; \
-            fi \
-        done; \
-        # 从远程源安装剩余依赖，使用 --no-deps 避免重复安装
-        pip install -r requirements.txt --no-deps; \
+        pip install --no-index --find-links=./packages -r requirements.txt; \
     else \
-        # 如果没有本地包，直接从远程源安装
         pip install -r requirements.txt; \
     fi
 
