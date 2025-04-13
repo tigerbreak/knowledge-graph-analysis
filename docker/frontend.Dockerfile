@@ -1,5 +1,5 @@
 # 构建阶段
-FROM node:16-alpine as build-stage
+FROM node:latest as build-stage
 
 # 设置工作目录
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY frontend/ .
 RUN npm run build
 
 # 生产阶段
-FROM nginx:stable-alpine as production-stage
+FROM nginx:alpine as production-stage
 
 # 复制构建产物到 Nginx 目录
 COPY --from=build-stage /app/dist /usr/share/nginx/html

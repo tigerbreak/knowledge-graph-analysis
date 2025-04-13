@@ -132,7 +132,8 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
     # 重新构建并启动容器
     echo "开始构建新服务..."
     if [ -f "docker-compose.yml" ]; then
-        docker-compose up --build -d
+        docker-compose build --no-cache
+        docker-compose up -d
     else
         echo "错误：docker-compose.yml 文件不存在"
         exit 1
@@ -162,6 +163,10 @@ $SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJE
         exit 1
     }
 EOF
+
+# 复制依赖包到服务器
+log "复制依赖包到服务器..."
+$SSHPASS scp -o StrictHostKeyChecking=no -r docker/packages "$REMOTE_USER@$REMOTE_HOST:$PROJECT_DIR/docker/"
 
 if [ $? -eq 0 ]; then
     log "部署完成！"
