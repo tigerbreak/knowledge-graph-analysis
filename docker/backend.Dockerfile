@@ -40,8 +40,8 @@ RUN if [ -d "packages" ]; then \
                 pip install --no-index --find-links=./packages "$pkg"; \
             fi \
         done; \
-        # 从远程源安装剩余依赖
-        pip install -r requirements.txt; \
+        # 从远程源安装剩余依赖，使用 --no-deps 避免重复安装
+        pip install -r requirements.txt --no-deps; \
     else \
         # 如果没有本地包，直接从远程源安装
         pip install -r requirements.txt; \
