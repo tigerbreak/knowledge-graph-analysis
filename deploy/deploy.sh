@@ -13,8 +13,8 @@ log() {
 }
 
 # 检查必要的环境变量
-if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ]; then
-    log "错误：缺少必要的环境变量"
+if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+    echo "错误：缺少必要的环境变量"
     exit 1
 fi
 
@@ -24,6 +24,10 @@ REMOTE_USER="$SERVER_USER"
 REMOTE_PASS="$SERVER_PASSWORD"
 PROJECT_DIR="/root/$PROJECT_NAME"
 DEPLOY_BRANCH="release/v1.0.3"
+
+# 设置变量
+DOCKER_IMAGE="$DOCKER_USERNAME/knowledge-graph"
+GITHUB_SHA=$(git rev-parse HEAD)
 
 # 输出环境变量信息（不包含密码）
 log "部署配置信息："
@@ -37,140 +41,36 @@ log "部署分支：$DEPLOY_BRANCH"
 # 使用 sshpass 进行密码登录
 SSHPASS="sshpass -p $REMOTE_PASS"
 
-# 在远程服务器上执行部署命令
-log "正在执行部署命令..."
-$SSHPASS ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export PROJECT_NAME='$PROJECT_NAME' && export PROJECT_DIR='/root/$PROJECT_NAME' && export GITHUB_REPO='$GITHUB_REPO' && export DEPLOY_BRANCH='$DEPLOY_BRANCH' && bash -s" << 'EOF'
-    set -e
-    
-    # 输出当前目录和环境变量
-    echo "当前目录：$(pwd)"
-    echo "项目名称：$PROJECT_NAME"
-    echo "项目目录：$PROJECT_DIR"
-    echo "GitHub仓库：$GITHUB_REPO"
-    echo "部署分支：$DEPLOY_BRANCH"
-    
+# 登录到服务器
+echo "登录到服务器..."
+sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
+    # 登录到 Docker Hub
+    echo "登录到 Docker Hub..."
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+    # 拉取最新镜像
+    echo "拉取后端镜像..."
+    docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA"
+    docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
+
+    echo "拉取前端镜像..."
+    docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA"
+    docker tag "$DOCKER_IMAGE:frontend-$GITHUB_SHA" "$DOCKER_IMAGE:frontend-latest"
+
     # 进入项目目录
-    echo "创建项目目录：$PROJECT_DIR"
-    mkdir -p "$PROJECT_DIR"
-    cd "$PROJECT_DIR" || {
-        echo "无法进入目录：$PROJECT_DIR"
-        exit 1
-    }
-    
-    # Git 操作
-    if [ ! -d ".git" ]; then
-        echo "正在克隆代码仓库..."
-        git clone "$GITHUB_REPO" .
-        if [ $? -ne 0 ]; then
-            echo "错误：克隆仓库失败"
-            exit 1
-        fi
-        echo "正在切换到分支：$DEPLOY_BRANCH"
-        git checkout "$DEPLOY_BRANCH" || {
-            echo "错误：切换分支失败"
-            exit 1
-        }
-    else
-        echo "正在更新代码..."
-        # 显示当前 Git 状态
-        echo "当前 Git 状态："
-        git status
-        # 显示远程仓库信息
-        echo "远程仓库信息："
-        git remote -v
-        # 获取所有远程分支
-        git fetch --all || {
-            echo "错误：获取远程分支失败"
-            exit 1
-        }
-        # 确保远程分支存在
-        if ! git show-ref --verify --quiet "refs/remotes/origin/$DEPLOY_BRANCH"; then
-            echo "错误：远程分支 origin/$DEPLOY_BRANCH 不存在"
-            exit 1
-        fi
-        # 重置到指定分支
-        git reset --hard "origin/$DEPLOY_BRANCH" || {
-            echo "错误：重置分支失败"
-            exit 1
-        }
-    fi
-    
-    # 检查并创建必要的目录
-    echo "创建必要的目录..."
-    mkdir -p logs
-    mkdir -p data/mysql
-    mkdir -p data/neo4j
-    
-    # 复制环境变量文件（如果存在）
-    if [ -f .env.example ]; then
-        cp .env.example .env
-    fi
-    
-    # 进入 Docker 目录
-    cd docker || {
-        echo "无法进入 Docker 目录"
-        exit 1
-    }
-    
-    # 显示当前目录和文件列表
-    echo "当前目录：$(pwd)"
-    echo "目录内容："
-    ls -la
-    
-    # 停止并删除现有容器
-    echo "停止现有服务..."
-    if [ -f "docker-compose.yml" ]; then
-        docker-compose down || true
-    else
-        echo "警告：docker-compose.yml 文件不存在"
-    fi
-    
-    # 清理未使用的镜像和卷
-    echo "清理旧的构建缓存..."
-    docker system prune -f
-    
-    # 重新构建并启动容器
-    echo "开始构建新服务..."
-    if [ -f "docker-compose.yml" ]; then
-        docker-compose build --no-cache
-        docker-compose up -d
-    else
-        echo "错误：docker-compose.yml 文件不存在"
-        exit 1
-    fi
-    
-    # 等待服务启动
-    echo "等待服务启动..."
-    sleep 30
-    
-    # 检查服务状态
-    echo "检查服务状态..."
-    docker-compose ps
-    
-    # 检查容器健康状态
-    echo "检查容器健康状态..."
-    if ! docker-compose ps | grep -q "Up"; then
-        echo "错误：部分服务未能正常启动"
-        docker-compose logs
-        exit 1
-    fi
-    
-    # 检查服务可访问性
-    echo "检查服务可访问性..."
-    curl -f http://localhost:8000/api/health || {
-        echo "错误：后端服务未能正常响应"
-        docker-compose logs backend
-        exit 1
-    }
+    cd /root/$PROJECT_NAME
+
+    # 停止并删除旧容器
+    echo "停止并删除旧容器..."
+    docker-compose down
+
+    # 启动新容器
+    echo "启动新容器..."
+    docker-compose up -d
+
+    # 清理未使用的镜像
+    echo "清理未使用的镜像..."
+    docker image prune -f
 EOF
 
-# 复制依赖包到服务器
-log "复制依赖包到服务器..."
-$SSHPASS scp -o StrictHostKeyChecking=no -r docker/packages "$REMOTE_USER@$REMOTE_HOST:$PROJECT_DIR/docker/"
-
-if [ $? -eq 0 ]; then
-    log "部署完成！"
-else
-    log "部署失败！请检查日志"
-    exit 1
-fi 
+echo "部署完成！" 
