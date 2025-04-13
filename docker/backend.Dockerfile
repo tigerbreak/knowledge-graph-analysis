@@ -36,7 +36,7 @@ COPY docker/packages/ ./packages/
 RUN if [ -d "packages" ]; then \
         # 先安装所有兼容的本地包
         for pkg in ./packages/*.whl; do \
-            if pip wheel --no-deps "$pkg" >/dev/null 2>&1; then \
+            if echo "$pkg" | grep -q "none-any\|manylinux\|linux"; then \
                 pip install --no-index --find-links=./packages "$pkg"; \
             fi \
         done; \
