@@ -43,48 +43,98 @@ log "Git提交：$GITHUB_SHA"
 
 # 部署函数
 deploy() {
-    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
+    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+        # 设置显示时间的函数
+        log() {
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+        }
+
+        # 显示系统信息
+        log "系统信息："
+        df -h | grep /dev/vda1
+        log "Docker 信息："
+        docker system df -v
+
         # 登录到阿里云容器镜像服务
-        echo "登录到阿里云容器镜像服务..."
+        log "登录到阿里云容器镜像服务..."
         echo "$ALIYUN_PASSWORD" | docker login -u "$ALIYUN_USERNAME" --password-stdin $ALIYUN_REGISTRY
 
-        # 拉取最新镜像
-        echo "拉取后端镜像..."
-        docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA"
-        docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
+        # 显示拉取前的镜像列表
+        log "拉取前的镜像列表："
+        docker images | grep "$DOCKER_IMAGE" || true
 
-        echo "拉取前端镜像..."
-        docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA"
+        # 拉取最新镜像并显示进度
+        log "=== 开始拉取后端镜像 ==="
+        docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA" 2>&1 | while read line; do
+            echo "[后端] $line"
+        done
+        docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
+        
+        log "=== 开始拉取前端镜像 ==="
+        docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA" 2>&1 | while read line; do
+            echo "[前端] $line"
+        done
         docker tag "$DOCKER_IMAGE:frontend-$GITHUB_SHA" "$DOCKER_IMAGE:frontend-latest"
+
+        # 显示拉取后的镜像信息
+        log "拉取后的镜像列表："
+        docker images | grep "$DOCKER_IMAGE"
+
+        # 显示镜像大小变化
+        log "镜像存储信息："
+        docker system df -v | grep -A 10 "Images space usage:"
 
         # 进入项目目录
         cd $PROJECT_DIR
 
         # 停止并删除旧容器
-        echo "停止并删除旧容器..."
+        log "停止并删除旧容器..."
+        docker-compose ps
         docker-compose down
 
         # 启动新容器
-        echo "启动新容器..."
+        log "启动新容器..."
         docker-compose up -d
 
-        # 等待容器启动完成
-        echo "等待容器启动..."
-        sleep 10
+        # 等待容器启动完成并显示启动进度
+        log "等待容器启动..."
+        for i in {1..10}; do
+            echo -n "."
+            sleep 1
+        done
+        echo ""
 
         # 检查容器状态
         if docker-compose ps | grep -q "Up"; then
-            echo "新容器启动成功，开始清理旧镜像..."
+            log "新容器启动成功，开始清理旧镜像..."
             
             # 获取当前使用的镜像ID
             CURRENT_IMAGES=$(docker-compose images -q)
             
-            # 删除所有未被使用的镜像（除了当前正在使用的）
+            # 显示要清理的镜像信息
+            log "准备清理的镜像："
+            docker images | grep "$DOCKER_IMAGE" | grep -v "latest" | grep -v "$GITHUB_SHA" || true
+            
+            # 删除所有未被使用的镜像
             docker image prune -af --filter "until=24h" --filter "label!=com.docker.compose.service"
             
-            echo "旧镜像清理完成！"
+            log "旧镜像清理完成！"
+
+            # 显示最终状态
+            log "=== 部署完成状态 ==="
+            log "1. 容器状态："
+            docker-compose ps
+            log "2. 剩余镜像："
+            docker images | grep "$DOCKER_IMAGE"
+            log "3. 系统存储状态："
+            df -h | grep /dev/vda1
+            docker system df -v
         else
-            echo "容器启动失败，保留旧镜像以便回滚"
+            log "容器启动失败，保留旧镜像以便回滚"
+            log "失败的容器状态："
+            docker-compose ps
+            log "容器日志："
+            docker-compose logs --tail=50
             exit 1
         fi
 EOF
