@@ -34,8 +34,14 @@ COPY docker/packages/ ./packages/
 
 # 安装依赖
 RUN if [ -d "packages" ]; then \
-        pip install --find-links=./packages -r requirements.txt; \
+        # 先安装所有本地包
+        pip install --no-index --find-links=./packages ./packages/*; \
+        # 检查requirements.txt中的依赖是否都已安装
+        pip check -r requirements.txt || \
+        # 如果有缺失的依赖，从远程源安装
+        pip install -r requirements.txt --no-deps; \
     else \
+        # 如果没有本地包，直接从远程源安装
         pip install -r requirements.txt; \
     fi
 
