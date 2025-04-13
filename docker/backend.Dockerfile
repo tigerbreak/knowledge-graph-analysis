@@ -10,6 +10,9 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# 复制 hosts 文件
+COPY docker/hosts /etc/hosts
+
 # 安装系统依赖
 RUN apt-get update \
     && apt-get install -y \
