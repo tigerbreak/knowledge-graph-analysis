@@ -20,10 +20,6 @@ RUN apt-get update \
         default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 配置 DNS
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-    echo "nameserver 114.114.114.114" >> /etc/resolv.conf
-
 # 配置pip镜像源
 #RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
