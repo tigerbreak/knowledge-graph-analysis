@@ -12,6 +12,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 # 复制 hosts 文件
 COPY docker/hosts /etc/hosts
+RUN echo "=== 容器内的 hosts 文件内容 ===" && \
+    cat /etc/hosts && \
+    echo "=== hosts 文件内容结束 ==="
 
 # 安装系统依赖
 RUN apt-get update \
