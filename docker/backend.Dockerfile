@@ -13,7 +13,9 @@ ENV PYTHONUNBUFFERED=1 \
 # 安装系统依赖
 RUN apt-get update \
     && apt-get install -y \
-        build-essential \
+        gcc \
+        g++ \
+        make \
         libpq-dev \
         default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
