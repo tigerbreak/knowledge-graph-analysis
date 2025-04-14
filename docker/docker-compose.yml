@@ -18,10 +18,7 @@ x-mysql-variables: &mysql-variables
 
 services:
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: ../docker/frontend.Dockerfile
-    image: knowledge-graph-frontend:v1.0.1
+    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:frontend-${GITHUB_SHA}
     container_name: knowledge_graph_frontend  # 前端容器名，可根据项目修改
     ports:
       - "80:80"  # 前端端口映射，可根据需要修改
@@ -33,10 +30,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
 
   backend:
-    build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
-    image: knowledge-graph-backend:v1.0.1
+    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:backend-${GITHUB_SHA}
     ports:
       - "8000:8000"  # 后端端口映射，可根据需要修改
     environment:
