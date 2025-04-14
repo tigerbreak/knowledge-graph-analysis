@@ -19,6 +19,32 @@ jobs:
         run: |
           chmod +x ./deploy/init-server.sh
           ./deploy/init-server.sh
+      - name: Install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync sshpass
+      - name: Check Docker directory
+        run: |
+          echo "=== 检查本地 Docker 目录 ==="
+          if [ ! -d "docker" ]; then
+            echo "❌ 错误: docker 目录不存在"
+            exit 1
+          fi
+          if [ ! -f "docker/docker-compose.yml" ]; then
+            echo "❌ 错误: docker/docker-compose.yml 文件不存在"
+            exit 1
+          fi
+          echo "本地 Docker 目录内容:"
+          ls -la docker/
+          echo "✅ 本地 Docker 目录检查完成"
+      - name: Copy Docker directory to server
+        run: |
+          echo "=== 开始复制 Docker 目录到服务器 ==="
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/root/${{ secrets.PROJECT_NAME }}/docker/"
+          echo "✅ Docker 目录复制完成"
+      - name: Verify Docker directory on server
+        run: |
+          echo "=== 验证服务器上的 Docker 目录 ==="
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" "echo '服务器 Docker 目录内容:'; ls -la /root/${{ secrets.PROJECT_NAME }}/docker/"
+          echo "✅ 服务器 Docker 目录验证完成"
 
   build-images:
     needs: init-server
@@ -45,11 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync sshpass
-      - name: Copy Docker directory to server
-        run: |
-          sshpass -p "${{ secrets.SERVER_PASSWORD }}" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/root/${{ secrets.PROJECT_NAME }}/docker/"
       - name: Execute deploy.sh
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
