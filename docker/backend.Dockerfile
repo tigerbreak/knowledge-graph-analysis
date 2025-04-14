@@ -10,11 +10,6 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 复制 hosts 文件
-COPY docker/hosts /etc/hosts
-RUN echo "=== 容器内的 hosts 文件内容 ===" && \
-    cat /etc/hosts && \
-    echo "=== hosts 文件内容结束 ==="
 
 # 安装系统依赖
 RUN apt-get update \
@@ -32,22 +27,11 @@ RUN apt-get update \
 # 升级pip
 RUN pip install --upgrade pip
 
-# 复制项目文件
+# 复制整个项目
 COPY . .
 
-# 复制本地依赖包
-COPY docker/packages/ ./packages/
-
 # 安装依赖
-RUN if [ -d "packages" ]; then \
-        # 先尝试从本地安装
-        pip install --no-index --find-links=./packages -r requirements.txt || \
-        # 如果本地安装失败，则从远程源安装
-        pip install -r requirements.txt; \
-    else \
-        # 如果没有本地包，直接从远程源安装
-        pip install -r requirements.txt; \
-    fi
+RUN pip install -r requirements.txt
 
 # 暴露端口
 EXPOSE 8000
