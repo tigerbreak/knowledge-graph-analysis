@@ -126,8 +126,17 @@ deploy() {
             log "准备清理的镜像："
             docker images | grep "$DOCKER_IMAGE" | grep -v "latest" | grep -v "$GITHUB_SHA" || true
             
-            # 删除所有未被使用的镜像
-            docker image prune -af --filter "until=24h" --filter "label!=com.docker.compose.service"
+            # 获取所有镜像标签
+            ALL_TAGS=$(docker images | grep "$DOCKER_IMAGE" | awk '{print $2}' | grep -v "latest" | grep -v "$GITHUB_SHA")
+            
+            # 只保留当前和上一个版本
+            if [ -n "$ALL_TAGS" ]; then
+                log "开始清理旧镜像..."
+                for tag in $ALL_TAGS; do
+                    log "删除镜像标签: $tag"
+                    docker rmi "$DOCKER_IMAGE:$tag" || true
+                done
+            fi
             
             log "旧镜像清理完成！"
 
