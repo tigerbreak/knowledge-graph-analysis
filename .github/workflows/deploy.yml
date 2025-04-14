@@ -90,8 +90,12 @@ jobs:
           ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
-          # 复制 docker 目录到服务器
-          sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no -r docker "$SERVER_USER@$SERVER_IP:/root/$PROJECT_NAME/"
+          # 安装 rsync
+          sudo apt-get update
+          sudo apt-get install -y rsync
+          
+          # 使用 rsync 复制 docker 目录
+          sshpass -p "$SERVER_PASSWORD" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "$SERVER_USER@$SERVER_IP:/root/$PROJECT_NAME/docker/"
           
           # 执行部署脚本
           bash deploy/deploy.sh
