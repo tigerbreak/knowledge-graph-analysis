@@ -59,12 +59,12 @@ jobs:
           access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
       - name: Build and push backend image
         run: |
-          docker build -t ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/backend:${{ github.sha }} -f docker/backend.Dockerfile .
-          docker push ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/backend:${{ github.sha }}
+          docker build -t ${{ secrets.ALIYUN_REGISTRY }}/backend:${{ github.sha }} -f docker/backend.Dockerfile .
+          docker push ${{ secrets.ALIYUN_REGISTRY }}/backend:${{ github.sha }}
       - name: Build and push frontend image
         run: |
-          docker build -t ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/frontend:${{ github.sha }} -f docker/frontend.Dockerfile .
-          docker push ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/frontend:${{ github.sha }}
+          docker build -t ${{ secrets.ALIYUN_REGISTRY }}/frontend:${{ github.sha }} -f docker/frontend.Dockerfile .
+          docker push ${{ secrets.ALIYUN_REGISTRY }}/frontend:${{ github.sha }}
 
   deploy:
     needs: build-images
