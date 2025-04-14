@@ -54,14 +54,35 @@ deploy() {
             echo "[$(date +'%Y-%m-%d %H:%M:%S')] \$1"
         }
 
-        # 显示环境变量
-        log "环境变量设置："
-        log "ALIYUN_REGISTRY: \$ALIYUN_REGISTRY"
-        log "ALIYUN_NAMESPACE: \$ALIYUN_NAMESPACE"
-        log "ALIYUN_REPOSITORY: \$ALIYUN_REPOSITORY"
-        log "PROJECT_NAME: \$PROJECT_NAME"
-        log "PROJECT_DIR: \$PROJECT_DIR"
-        log "DOCKER_IMAGE: \$DOCKER_IMAGE"
+        # 检查基础镜像函数
+        check_and_pull_image() {
+            local IMAGE_NAME=$1
+            local IMAGE_TAG=$2
+            local FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+            
+            log "检查 ${FULL_IMAGE} 镜像..."
+            if docker images ${FULL_IMAGE} --quiet | grep -q .; then
+                log "${FULL_IMAGE} 镜像已存在，检查是否需要更新..."
+                # 获取本地镜像 ID
+                LOCAL_IMAGE_ID=$(docker images ${FULL_IMAGE} --quiet)
+                
+                # 获取远程镜像信息
+                REMOTE_DIGEST=$(docker manifest inspect ${FULL_IMAGE} | grep -i sha256 | head -1)
+                
+                # 获取本地镜像 digest
+                LOCAL_DIGEST=$(docker image inspect ${FULL_IMAGE} | grep -i sha256 | head -1)
+                
+                if [ "$LOCAL_DIGEST" = "$REMOTE_DIGEST" ]; then
+                    log "${FULL_IMAGE} 本地镜像已是最新版本，跳过拉取"
+                else
+                    log "${FULL_IMAGE} 发现新版本，开始拉取..."
+                    docker pull ${FULL_IMAGE} 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [$FULL_IMAGE] $line"; done
+                fi
+            else
+                log "本地不存在 ${FULL_IMAGE} 镜像，开始拉取..."
+                docker pull ${FULL_IMAGE} 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [$FULL_IMAGE] $line"; done
+            fi
+        }
 
         # 显示系统信息
         log "系统信息："
@@ -69,6 +90,12 @@ deploy() {
         log "Docker 信息："
         docker system df -v
         echo "✅ 系统信息检查完成"
+
+        # 检查基础镜像
+        log "=== 检查基础镜像 ==="
+        check_and_pull_image "mysql" "8.0"    # 与 docker-compose.yml 中的版本一致
+        check_and_pull_image "neo4j" "4.4"    # 与 docker-compose.yml 中的版本一致
+        echo "✅ 基础镜像检查完成"
 
         # 登录到阿里云容器镜像服务
         log "登录到阿里云容器镜像服务..."
@@ -86,15 +113,11 @@ deploy() {
 
         # 拉取最新镜像并显示进度
         log "=== 开始拉取后端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do
-            echo "[后端] $line"
-        done
+        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [后端] $line"; done
         echo "✅ 后端镜像拉取完成"
         
         log "=== 开始拉取前端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do
-            echo "[前端] $line"
-        done
+        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [前端] $line"; done
         echo "✅ 前端镜像拉取完成"
 
         # 显示拉取后的镜像信息
