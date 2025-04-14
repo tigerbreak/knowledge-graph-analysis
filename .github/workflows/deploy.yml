@@ -75,24 +75,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to server
+      - name: Deploy
         env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
           ALIYUN_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
           ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
-          echo "=== 开始调试环境变量 ==="
-          echo "检查必要的环境变量是否存在（不显示具体值）："
-          echo "SERVER_IP: [$(if [ ! -z "$SERVER_IP" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "SERVER_USER: [$(if [ ! -z "$SERVER_USER" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "SERVER_PASSWORD: [$(if [ ! -z "$SERVER_PASSWORD" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "PROJECT_NAME: [$(if [ ! -z "$PROJECT_NAME" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "ALIYUN_USERNAME: [$(if [ ! -z "$ALIYUN_USERNAME" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "ALIYUN_PASSWORD: [$(if [ ! -z "$ALIYUN_PASSWORD" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "ALIYUN_REGISTRY: [$(if [ ! -z "$ALIYUN_REGISTRY" ]; then echo "已设置"; else echo "未设置"; fi)]"
-          echo "=== 调试信息结束 ==="
+          # 复制 docker 目录到服务器
+          sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no -r docker "$SERVER_USER@$SERVER_IP:/root/$PROJECT_NAME/"
           
-          chmod +x deploy/deploy.sh
-          ./deploy/deploy.sh
+          # 执行部署脚本
+          bash deploy/deploy.sh
           
       - name: Notify on success
         if: success()
