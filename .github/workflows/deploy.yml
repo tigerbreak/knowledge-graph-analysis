@@ -52,11 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Aliyun Container Registry
-        uses: aliyun/acr-login@v1
-        with:
-          region-id: cn-hongkong
-          access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
-          access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+        run: |
+          echo "${{ secrets.ALIYUN_PASSWORD }}" | docker login --username=${{ secrets.ALIYUN_USERNAME }} registry.cn-hongkong.aliyuncs.com
       - name: Build and push backend image
         run: |
           docker build -t ${{ secrets.ALIYUN_REGISTRY }}/backend:${{ github.sha }} -f docker/backend.Dockerfile .
@@ -77,9 +74,9 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
           PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
-          ALIYUN_REGISTRY: ${{ secrets.ALIYUN_REGISTRY }}
-          ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
-          ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+          ALIYUN_REGISTRY: registry.cn-hongkong.aliyuncs.com/reallyway
+          ALIYUN_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
+          ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
         run: |
           chmod +x ./deploy/deploy.sh
           ./deploy/deploy.sh

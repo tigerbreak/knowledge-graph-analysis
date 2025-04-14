@@ -51,10 +51,12 @@ deploy() {
         df -h | grep /dev/vda1
         log "Docker 信息："
         docker system df -v
+        echo "✅ 系统信息检查完成"
 
         # 登录到阿里云容器镜像服务
         log "登录到阿里云容器镜像服务..."
-        echo "$ALIYUN_ACCESS_KEY_SECRET" | docker login -u "$ALIYUN_ACCESS_KEY_ID" --password-stdin $ALIYUN_REGISTRY
+        echo "$ALIYUN_PASSWORD" | docker login --username="$ALIYUN_USERNAME" $ALIYUN_REGISTRY
+        echo "✅ 阿里云容器镜像服务登录完成"
 
         # 显示拉取前的镜像列表
         log "拉取前的镜像列表："
@@ -66,12 +68,14 @@ deploy() {
             echo "[后端] $line"
         done
         docker tag "${DOCKER_IMAGE}/backend:${GITHUB_SHA}" "${DOCKER_IMAGE}/backend:latest"
+        echo "✅ 后端镜像拉取完成"
         
         log "=== 开始拉取前端镜像 ==="
         docker pull "${DOCKER_IMAGE}/frontend:${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[前端] $line"
         done
         docker tag "${DOCKER_IMAGE}/frontend:${GITHUB_SHA}" "${DOCKER_IMAGE}/frontend:latest"
+        echo "✅ 前端镜像拉取完成"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
@@ -99,10 +103,12 @@ deploy() {
         log "停止并删除旧容器..."
         docker-compose ps
         docker-compose down
+        echo "✅ 旧容器清理完成"
 
         # 启动新容器
         log "启动新容器..."
         docker-compose up -d
+        echo "✅ 新容器启动完成"
 
         # 等待容器启动完成并显示启动进度
         log "等待容器启动..."
@@ -135,7 +141,7 @@ deploy() {
                 done
             fi
             
-            log "旧镜像清理完成！"
+            log "✅ 旧镜像清理完成"
 
             # 显示最终状态
             log "=== 部署完成状态 ==="
@@ -162,14 +168,14 @@ attempt=1
 while [ $attempt -le $MAX_RETRIES ]; do
     log "尝试部署 (第 $attempt 次)"
     if deploy; then
-        log "部署成功！"
+        log "✅ 部署成功！"
         exit 0
     else
         if [ $attempt -lt $MAX_RETRIES ]; then
             log "部署失败，${RETRY_INTERVAL}秒后重试..."
             sleep $RETRY_INTERVAL
         else
-            log "已达到最大重试次数($MAX_RETRIES)，部署失败"
+            log "❌ 已达到最大重试次数($MAX_RETRIES)，部署失败"
             exit 1
         fi
     fi
