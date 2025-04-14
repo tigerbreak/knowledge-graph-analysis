@@ -40,11 +40,28 @@ log "Git提交：$GITHUB_SHA"
 
 # 部署函数
 deploy() {
-    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
+        # 设置环境变量
+        export ALIYUN_REGISTRY='registry.cn-hongkong.aliyuncs.com'
+        export ALIYUN_NAMESPACE='tongihttigerbreak'
+        export ALIYUN_REPOSITORY='tigerhouse'
+        export PROJECT_NAME='myproject'
+        export PROJECT_DIR="/root/\$PROJECT_NAME"
+        export DOCKER_IMAGE="\$ALIYUN_REGISTRY/\$ALIYUN_NAMESPACE/\$ALIYUN_REPOSITORY"
+
         # 设置显示时间的函数
         log() {
-            echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] \$1"
         }
+
+        # 显示环境变量
+        log "环境变量设置："
+        log "ALIYUN_REGISTRY: \$ALIYUN_REGISTRY"
+        log "ALIYUN_NAMESPACE: \$ALIYUN_NAMESPACE"
+        log "ALIYUN_REPOSITORY: \$ALIYUN_REPOSITORY"
+        log "PROJECT_NAME: \$PROJECT_NAME"
+        log "PROJECT_DIR: \$PROJECT_DIR"
+        log "DOCKER_IMAGE: \$DOCKER_IMAGE"
 
         # 显示系统信息
         log "系统信息："
@@ -62,14 +79,18 @@ deploy() {
         log "拉取前的镜像列表："
         docker images | grep "$DOCKER_IMAGE" || true
 
-        # 拉取后端镜像
+        # 打印完整的镜像引用
+        log "DOCKER_IMAGE 值: $DOCKER_IMAGE"
+        log "后端镜像完整引用: ${DOCKER_IMAGE}:backend-latest"
+        log "前端镜像完整引用: ${DOCKER_IMAGE}:frontend-latest"
+
+        # 拉取最新镜像并显示进度
         log "=== 开始拉取后端镜像 ==="
         docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do
             echo "[后端] $line"
         done
         echo "✅ 后端镜像拉取完成"
-
-        # 拉取前端镜像
+        
         log "=== 开始拉取前端镜像 ==="
         docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do
             echo "[前端] $line"
@@ -87,7 +108,7 @@ deploy() {
         # 进入项目目录
         cd "$PROJECT_DIR" || exit 1
         log "当前工作目录: $(pwd)"
-        log "目录内容:"
+        log "项目目录内容:"
         ls -la
         
         # 检查 docker 目录是否存在
@@ -98,8 +119,8 @@ deploy() {
             exit 1
         fi
 
-        # 进入 docker 目录
-        cd docker || exit 1
+        # 进入项目目录下的 docker 目录
+        cd "$PROJECT_DIR/docker" || exit 1
         log "当前工作目录: $(pwd)"
         log "docker 目录内容:"
         ls -la
@@ -140,10 +161,10 @@ deploy() {
             
             # 显示要清理的镜像信息
             log "准备清理的镜像："
-            docker images | grep "$DOCKER_IMAGE" | grep -v "latest" | grep -v "$GITHUB_SHA" || true
+            docker images | grep "$DOCKER_IMAGE" | grep -v "latest" || true
             
             # 获取所有镜像标签
-            ALL_TAGS=$(docker images | grep "$DOCKER_IMAGE" | awk '{print $2}' | grep -v "latest" | grep -v "$GITHUB_SHA")
+            ALL_TAGS=$(docker images | grep "$DOCKER_IMAGE" | awk '{print \$2}' | grep -v "latest")
             
             # 只保留当前和上一个版本
             if [ -n "$ALL_TAGS" ]; then
