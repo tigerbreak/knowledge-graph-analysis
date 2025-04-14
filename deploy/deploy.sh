@@ -62,19 +62,18 @@ deploy() {
         log "拉取前的镜像列表："
         docker images | grep "$DOCKER_IMAGE" || true
 
-        # 拉取最新镜像并显示进度
+        # 拉取后端镜像
         log "=== 开始拉取后端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do
             echo "[后端] $line"
         done
-        docker tag "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" "${DOCKER_IMAGE}:backend-latest"
         echo "✅ 后端镜像拉取完成"
-        
+
+        # 拉取前端镜像
         log "=== 开始拉取前端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do
             echo "[前端] $line"
         done
-        docker tag "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" "${DOCKER_IMAGE}:frontend-latest"
         echo "✅ 前端镜像拉取完成"
 
         # 显示拉取后的镜像信息
@@ -88,16 +87,30 @@ deploy() {
         # 进入项目目录
         cd "$PROJECT_DIR" || exit 1
         log "当前工作目录: $(pwd)"
+        log "目录内容:"
+        ls -la
         
-        # 检查 docker-compose.yml 是否存在
-        if [ ! -f "docker/docker-compose.yml" ]; then
-            log "错误: docker/docker-compose.yml 文件不存在"
+        # 检查 docker 目录是否存在
+        if [ ! -d "docker" ]; then
+            log "错误: docker 目录不存在"
+            log "当前目录内容:"
+            ls -la
             exit 1
         fi
 
         # 进入 docker 目录
         cd docker || exit 1
         log "当前工作目录: $(pwd)"
+        log "docker 目录内容:"
+        ls -la
+        
+        # 检查 docker-compose.yml 是否存在
+        if [ ! -f "docker-compose.yml" ]; then
+            log "错误: docker-compose.yml 文件不存在"
+            log "当前目录内容:"
+            ls -la
+            exit 1
+        fi
 
         # 停止并删除旧容器
         log "停止并删除旧容器..."
