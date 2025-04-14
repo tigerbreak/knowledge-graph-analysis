@@ -63,18 +63,18 @@ deploy() {
         log "拉取前的镜像列表："
         docker images | grep "$DOCKER_IMAGE" || true
 
-        # 拉取最新镜像并显示进度
+      # 拉取最新镜像并显示进度
         log "=== 开始拉取后端镜像 ==="
-        docker pull "$DOCKER_IMAGE:backend-$GITHUB_SHA" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}-backend-${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[后端] $line"
         done
-        docker tag "$DOCKER_IMAGE:backend-$GITHUB_SHA" "$DOCKER_IMAGE:backend-latest"
+        docker tag "${DOCKER_IMAGE}-backend-${GITHUB_SHA}" "${DOCKER_IMAGE}-backend-latest"
         
         log "=== 开始拉取前端镜像 ==="
-        docker pull "$DOCKER_IMAGE:frontend-$GITHUB_SHA" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}-frontend-${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[前端] $line"
         done
-        docker tag "$DOCKER_IMAGE:frontend-$GITHUB_SHA" "$DOCKER_IMAGE:frontend-latest"
+        docker tag "${DOCKER_IMAGE}-frontend-${GITHUB_SHA}" "${DOCKER_IMAGE}-frontend-latest"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
