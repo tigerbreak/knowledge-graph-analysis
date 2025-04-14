@@ -85,7 +85,14 @@ deploy() {
         docker system df -v | grep -A 10 "Images space usage:"
 
         # 进入项目目录
-        cd $PROJECT_DIR
+        cd $PROJECT_DIR/docker || exit 1
+        log "当前工作目录: $(pwd)"
+        
+        # 检查 docker-compose.yml 是否存在
+        if [ ! -f "docker-compose.yml" ]; then
+            log "错误: docker-compose.yml 文件不存在"
+            exit 1
+        fi
 
         # 停止并删除旧容器
         log "停止并删除旧容器..."
