@@ -14,7 +14,7 @@ log() {
 }
 
 # 检查必要的环境变量
-if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_USERNAME" ] || [ -z "$ALIYUN_PASSWORD" ]; then
+if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_REGISTRY" ] || [ -z "$ALIYUN_ACCESS_KEY_ID" ] || [ -z "$ALIYUN_ACCESS_KEY_SECRET" ]; then
     echo "错误：缺少必要的环境变量"
     exit 1
 fi
@@ -26,10 +26,7 @@ REMOTE_PASS="$SERVER_PASSWORD"
 PROJECT_DIR="/root/$PROJECT_NAME"
 
 # 设置变量
-ALIYUN_REGISTRY="registry.cn-hongkong.aliyuncs.com"
-ALIYUN_NAMESPACE="tongihttigerbreak"
-ALIYUN_REPOSITORY="tigerhouse"
-DOCKER_IMAGE="$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/$ALIYUN_REPOSITORY"
+DOCKER_IMAGE="$ALIYUN_REGISTRY/$PROJECT_NAME"
 GITHUB_SHA=$(git rev-parse HEAD)
 
 # 输出环境变量信息（不包含密码）
@@ -57,24 +54,24 @@ deploy() {
 
         # 登录到阿里云容器镜像服务
         log "登录到阿里云容器镜像服务..."
-        echo "$ALIYUN_PASSWORD" | docker login -u "$ALIYUN_USERNAME" --password-stdin $ALIYUN_REGISTRY
+        echo "$ALIYUN_ACCESS_KEY_SECRET" | docker login -u "$ALIYUN_ACCESS_KEY_ID" --password-stdin $ALIYUN_REGISTRY
 
         # 显示拉取前的镜像列表
         log "拉取前的镜像列表："
         docker images | grep "$DOCKER_IMAGE" || true
 
-      # 拉取最新镜像并显示进度
+        # 拉取最新镜像并显示进度
         log "=== 开始拉取后端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}/backend:${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[后端] $line"
         done
-        docker tag "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" "${DOCKER_IMAGE}:backend-latest"
+        docker tag "${DOCKER_IMAGE}/backend:${GITHUB_SHA}" "${DOCKER_IMAGE}/backend:latest"
         
         log "=== 开始拉取前端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}/frontend:${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[前端] $line"
         done
-        docker tag "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" "${DOCKER_IMAGE}:frontend-latest"
+        docker tag "${DOCKER_IMAGE}/frontend:${GITHUB_SHA}" "${DOCKER_IMAGE}/frontend:latest"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
