@@ -65,16 +65,16 @@ deploy() {
 
       # 拉取最新镜像并显示进度
         log "=== 开始拉取后端镜像 ==="
-        docker pull "${DOCKER_IMAGE}-backend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[后端] $line"
         done
-        docker tag "${DOCKER_IMAGE}-backend-${GITHUB_SHA}" "${DOCKER_IMAGE}-backend-latest"
+        docker tag "${DOCKER_IMAGE}:backend-${GITHUB_SHA}" "${DOCKER_IMAGE}:backend-latest"
         
         log "=== 开始拉取前端镜像 ==="
-        docker pull "${DOCKER_IMAGE}-frontend-${GITHUB_SHA}" 2>&1 | while read line; do
+        docker pull "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" 2>&1 | while read line; do
             echo "[前端] $line"
         done
-        docker tag "${DOCKER_IMAGE}-frontend-${GITHUB_SHA}" "${DOCKER_IMAGE}-frontend-latest"
+        docker tag "${DOCKER_IMAGE}:frontend-${GITHUB_SHA}" "${DOCKER_IMAGE}:frontend-latest"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
@@ -85,14 +85,18 @@ deploy() {
         docker system df -v | grep -A 10 "Images space usage:"
 
         # 进入项目目录
-        cd $PROJECT_DIR/docker || exit 1
+        cd "$PROJECT_DIR" || exit 1
         log "当前工作目录: $(pwd)"
         
         # 检查 docker-compose.yml 是否存在
-        if [ ! -f "docker-compose.yml" ]; then
-            log "错误: docker-compose.yml 文件不存在"
+        if [ ! -f "docker/docker-compose.yml" ]; then
+            log "错误: docker/docker-compose.yml 文件不存在"
             exit 1
         fi
+
+        # 进入 docker 目录
+        cd docker || exit 1
+        log "当前工作目录: $(pwd)"
 
         # 停止并删除旧容器
         log "停止并删除旧容器..."
