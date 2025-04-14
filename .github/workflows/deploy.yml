@@ -4,26 +4,12 @@ on:
   push:
     branches:
       - release/v1.0.3
-  workflow_dispatch:
-
-env:
-  SERVER_IP: ${{ secrets.SERVER_IP }}
-  SERVER_USER: ${{ secrets.SERVER_USER }}
-  SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
-  PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
-  # 阿里云容器镜像服务配置
-  ALIYUN_REGISTRY: registry.cn-hongkong.aliyuncs.com
-  ALIYUN_NAMESPACE: tongihttigerbreak
-  ALIYUN_REPOSITORY: tigerhouse
 
 jobs:
-  # 初始化服务器环境
   init-server:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Execute init-server.sh
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
@@ -34,64 +20,36 @@ jobs:
           chmod +x ./deploy/init-server.sh
           ./deploy/init-server.sh
 
-  # 构建 Docker 镜像
   build-images:
     needs: init-server
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Login to Aliyun Container Registry
         uses: aliyun/acr-login@v1
         with:
           region-id: cn-hongkong
           access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
           access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-
       - name: Build and push backend image
         run: |
           docker build -t ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/backend:${{ github.sha }} -f docker/backend.Dockerfile .
           docker push ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/backend:${{ github.sha }}
-
       - name: Build and push frontend image
         run: |
           docker build -t ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/frontend:${{ github.sha }} -f docker/frontend.Dockerfile .
           docker push ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.PROJECT_NAME }}/frontend:${{ github.sha }}
 
-  # 部署应用
   deploy:
     needs: build-images
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Install rsync
         run: sudo apt-get update && sudo apt-get install -y rsync sshpass
-
-      - name: Debug - Check Directory Structure
-        run: |
-          echo "当前目录: $(pwd)"
-          echo "目录内容:"
-          ls -la
-          echo "docker 目录内容:"
-          ls -la docker/
-
-      - name: Debug - Test SSH Connection
-        run: |
-          echo "测试 SSH 连接..."
-          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" "echo 'SSH 连接成功'; ls -la /root/${{ secrets.PROJECT_NAME }}"
-
-      - name: Debug - Test Rsync
-        run: |
-          echo "测试 rsync 复制..."
-          sshpass -p "${{ secrets.SERVER_PASSWORD }}" rsync -avz --dry-run --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/root/${{ secrets.PROJECT_NAME }}/docker/"
-
       - name: Copy Docker directory to server
         run: |
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/root/${{ secrets.PROJECT_NAME }}/docker/"
-
       - name: Execute deploy.sh
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
@@ -104,12 +62,10 @@ jobs:
         run: |
           chmod +x ./deploy/deploy.sh
           ./deploy/deploy.sh
-
       - name: Notify on success
         if: success()
         run: |
           echo "Deployment completed successfully!"
-
       - name: Notify on failure
         if: failure()
         run: |
