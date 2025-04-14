@@ -25,6 +25,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Initialize server
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
         run: |
           chmod +x deploy/init-server.sh
           ./deploy/init-server.sh
