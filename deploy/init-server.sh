@@ -3,11 +3,14 @@
 # 检查必要的环境变量
 if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ]; then
     echo "错误：缺少必要的环境变量"
+    echo "SERVER_IP: $SERVER_IP"
+    echo "SERVER_USER: $SERVER_USER"
+    echo "PROJECT_NAME: $PROJECT_NAME"
     exit 1
 fi
 
 # 使用 sshpass 进行密码登录
-sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
     # 更新系统
     echo "更新系统..."
     yum update -y
@@ -66,8 +69,11 @@ sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SER
 
     # 创建项目目录结构
     echo "创建项目目录结构..."
+    echo "项目名称: $PROJECT_NAME"
     mkdir -p /root/$PROJECT_NAME/docker
     echo "✅ 项目目录结构创建完成"
+    echo "当前目录内容:"
+    ls -la /root/$PROJECT_NAME
 
     # 显示安装结果
     echo "=== 安装完成 ==="
