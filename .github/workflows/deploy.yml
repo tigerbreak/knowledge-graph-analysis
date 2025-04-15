@@ -47,7 +47,17 @@ jobs:
       - name: Copy Docker directory to server
         run: |
           echo "=== 开始复制 Docker 目录到服务器 ==="
+          # 显示本地文件内容
+          echo "本地 docker-compose.yml 内容:"
+          cat docker/docker-compose.yml
+          
+          # 复制文件
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no" docker/ "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/root/${{ secrets.PROJECT_NAME }}/docker/"
+          
+          # 显示服务器文件内容
+          echo "服务器 docker-compose.yml 内容:"
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" "cat /root/${{ secrets.PROJECT_NAME }}/docker/docker-compose.yml"
+          
           echo "✅ Docker 目录复制完成"
       - name: Verify Docker directory on server
         run: |
@@ -78,7 +88,6 @@ jobs:
           file: docker/backend.Dockerfile
           push: true
           tags: |
-            ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-${{ github.sha }}
             ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest
 
       - name: Build and push frontend image
@@ -88,7 +97,6 @@ jobs:
           file: docker/frontend.Dockerfile
           push: true
           tags: |
-            ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-${{ github.sha }}
             ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest
 
   deploy:
