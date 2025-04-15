@@ -1,14 +1,7 @@
 name: Deploy Database Services
 
 on:
-  push:
-    branches:
-      - main
-      - release/*
-    paths:
-      - 'docker/docker-compose.db.yml'
-      - 'deploy/deploy-db.sh'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   deploy:
