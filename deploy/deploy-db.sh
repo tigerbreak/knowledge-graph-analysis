@@ -3,6 +3,12 @@
 # 设置错误时退出
 set -e
 
+# 环境变量设置
+MYSQL_DATABASE=${MYSQL_DATABASE:-knowledge_graph}
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+NEO4J_PASSWORD=${NEO4J_PASSWORD:-root123321}
+NEO4J_AUTH="neo4j/${NEO4J_PASSWORD}"
+
 # 日志函数
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
@@ -13,26 +19,25 @@ install_docker() {
     log "=== 检查并安装 Docker ==="
     if ! command -v docker &> /dev/null; then
         log "Docker 未安装，开始安装..."
+        
+        # 卸载旧版本
+        sudo yum remove -y docker \
+            docker-client \
+            docker-client-latest \
+            docker-common \
+            docker-latest \
+            docker-latest-logrotate \
+            docker-logrotate \
+            docker-engine
+
         # 安装依赖
-        sudo apt-get update
-        sudo apt-get install -y \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            gnupg \
-            lsb-release
+        sudo yum install -y yum-utils
 
-        # 添加 Docker 官方 GPG 密钥
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-        # 设置稳定版仓库
-        echo \
-            "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        # 设置仓库
+        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
         # 安装 Docker
-        sudo apt-get update
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+        sudo yum install -y docker-ce docker-ce-cli containerd.io
 
         # 启动 Docker
         sudo systemctl start docker
@@ -100,6 +105,28 @@ check_and_pull_images() {
     log "镜像检查完成"
 }
 
+# 处理配置文件
+process_config_file() {
+    log "=== 处理配置文件 ==="
+    # 创建临时文件
+    local temp_file=$(mktemp)
+    
+    # 替换环境变量
+    cat docker/docker-compose.db.yml | \
+    sed "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" | \
+    sed "s/\${MYSQL_ROOT_PASSWORD}/${MYSQL_ROOT_PASSWORD}/g" | \
+    sed "s/\${NEO4J_PASSWORD}/${NEO4J_PASSWORD}/g" | \
+    sed "s/\${NEO4J_AUTH}/${NEO4J_AUTH}/g" > "$temp_file"
+    
+    # 显示处理后的内容
+    log "配置文件内容:"
+    cat "$temp_file"
+    
+    # 移动到最终位置
+    mv "$temp_file" ~/docker-compose.db.yml
+    log "配置文件处理完成"
+}
+
 # 停止并删除旧容器
 cleanup_old_containers() {
     log "=== 清理旧容器 ==="
@@ -110,6 +137,11 @@ cleanup_old_containers() {
 # 启动服务
 start_services() {
     log "=== 启动数据库服务 ==="
+    # 使用环境变量启动服务
+    MYSQL_DATABASE="$MYSQL_DATABASE" \
+    MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+    NEO4J_PASSWORD="$NEO4J_PASSWORD" \
+    NEO4J_AUTH="$NEO4J_AUTH" \
     docker-compose -f ~/docker-compose.db.yml up -d
     
     # 等待服务启动
@@ -133,6 +165,9 @@ main() {
     # 检查环境
     check_directories
     check_and_pull_images
+    
+    # 处理配置文件
+    process_config_file
     
     # 清理旧容器
     cleanup_old_containers
