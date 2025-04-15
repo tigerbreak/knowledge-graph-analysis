@@ -27,7 +27,6 @@ PROJECT_DIR="/root/$PROJECT_NAME"
 
 # 设置变量
 DOCKER_IMAGE="$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/$ALIYUN_REPOSITORY"
-GITHUB_SHA=$(git rev-parse HEAD)
 
 # 输出环境变量信息（不包含密码）
 log "部署配置信息："
@@ -36,7 +35,16 @@ log "远程用户：$REMOTE_USER"
 log "项目名称：$PROJECT_NAME"
 log "项目目录：$PROJECT_DIR"
 log "Docker镜像：$DOCKER_IMAGE"
-log "Git提交：$GITHUB_SHA"
+
+# 获取系统信息
+log "系统信息："
+log "主机名：$(hostname)"
+log "操作系统：$(uname -a)"
+log "Docker版本：$(docker --version)"
+log "Docker Compose版本：$(docker-compose --version)"
+log "当前目录：$(pwd)"
+log "当前用户：$(whoami)"
+log "当前时间：$(date)"
 
 # 部署函数
 deploy() {
