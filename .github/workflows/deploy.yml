@@ -1,9 +1,7 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches:
-      - release/v1.0.3
+  workflow_dispatch:  # 只允许手动触发
 
 env:
   SERVER_USER: ${{ secrets.SERVER_USER }}
