@@ -1,0 +1,100 @@
+version: '3.8'
+
+# Neo4j 相关配置变量 - 部署时可能需要修改
+x-neo4j-variables: &neo4j-variables
+  NEO4J_USER: neo4j  # Neo4j 用户名
+  NEO4J_PASSWORD: root123321  # Neo4j 密码，部署时建议修改
+  NEO4J_URI: bolt://myproject-neo4j-1:7687  # Neo4j 连接地址，注意容器名要匹配
+  NEO4J_AUTH: neo4j/root123321  # 认证信息，格式为 username/password，需要与上面的密码保持一致
+
+# MySQL 相关配置变量 - 部署时可能需要修改
+x-mysql-variables: &mysql-variables
+  MYSQL_DATABASE: knowledge_graph  # 数据库名称
+  MYSQL_ROOT_PASSWORD: 123456  # Root 密码，部署时建议修改
+  MYSQL_HOST: myproject-mysql-1  # MySQL 主机名，注意容器名要匹配
+  MYSQL_PORT: 3306  # MySQL 端口号
+
+services:
+  neo4j:
+    image: neo4j:4.4  # Neo4j 版本，可根据需要修改
+    container_name: myproject-neo4j-1  # Neo4j 容器名，修改时需要同步修改 NEO4J_URI
+    ports:
+      - "7474:7474"  # Neo4j HTTP 端口
+      - "7687:7687"  # Neo4j Bolt 端口
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/root123321}
+      # Neo4j 内存配置，确保能正常启动
+      NEO4J_dbms_memory_pagecache_size: 256M
+      NEO4J_dbms_memory_heap_initial__size: 256M
+      NEO4J_dbms_memory_heap_max__size: 256M
+      NEO4J_dbms_memory_off_heap_max_size: 256M
+    volumes:
+      - neo4j_data:/data  # 数据持久化
+      - neo4j_logs:/logs  # 日志持久化
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:7474", "-O", "/dev/null"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M  # 最小启动内存
+        reservations:
+          memory: 256M  # 最小运行内存
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0  # MySQL 版本，可根据需要修改
+    container_name: myproject-mysql-1  # MySQL 容器名，修改时需要同步修改 MYSQL_HOST
+    ports:
+      - "3307:3306"  # MySQL 端口，外部访问使用 3307
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-knowledge_graph}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      # MySQL 内存配置，优化内存使用
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 64M
+      MYSQL_INNODB_LOG_BUFFER_SIZE: 8M
+      MYSQL_INNODB_LOG_FILE_SIZE: 24M
+      MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT: 2
+      MYSQL_KEY_BUFFER_SIZE: 16M
+      MYSQL_QUERY_CACHE_SIZE: 0
+      MYSQL_QUERY_CACHE_TYPE: 0
+      MYSQL_INNODB_FLUSH_METHOD: O_DIRECT
+      # 优化临时表处理
+      MYSQL_INNODB_TEMP_DATA_FILE_PATH: ibtmp1:12M:autoextend:max:64M
+      MYSQL_TMP_TABLE_SIZE: 16M
+      MYSQL_MAX_HEAP_TABLE_SIZE: 16M
+      # 优化排序和连接
+      MYSQL_SORT_BUFFER_SIZE: 256K
+      MYSQL_JOIN_BUFFER_SIZE: 128K
+      MYSQL_READ_BUFFER_SIZE: 128K
+      MYSQL_READ_RND_BUFFER_SIZE: 256K
+    volumes:
+      - mysql_data:/var/lib/mysql  # 数据持久化
+      - mysql_tmp:/tmp  # 临时文件目录
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 192M  # 降低启动内存
+        reservations:
+          memory: 128M  # 降低运行内存
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# 网络配置
+networks:
+  app-network:
+    driver: bridge
+
+# 数据卷配置 - 确保数据持久化
+volumes:
+  neo4j_data:  # Neo4j 数据持久化
+  neo4j_logs:  # Neo4j 日志持久化
+  mysql_data:  # MySQL 数据持久化
+  mysql_tmp:   # MySQL 临时文件目录 
