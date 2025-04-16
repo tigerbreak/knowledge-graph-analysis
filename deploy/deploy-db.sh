@@ -128,12 +128,18 @@ process_config_file() {
         exit 1
     fi
     
-    # 使用 sudo 创建文件并设置权限，使用 # 作为分隔符
+    # 创建临时文件
+    local temp_file=$(mktemp)
+    
+    # 使用 sudo 处理文件内容
     sudo sed -e "s#\${MYSQL_DATABASE}#${MYSQL_DATABASE}#g" \
         -e "s#\${MYSQL_ROOT_PASSWORD}#${MYSQL_ROOT_PASSWORD}#g" \
         -e "s#\${NEO4J_PASSWORD}#${NEO4J_PASSWORD}#g" \
         -e "s#\${NEO4J_AUTH}#${NEO4J_AUTH}#g" \
-        "/root/docker-compose.db.yml" > /root/docker-compose.db.yml
+        "/root/docker-compose.db.yml" > "$temp_file"
+    
+    # 移动临时文件到目标位置
+    sudo mv "$temp_file" /root/docker-compose.db.yml
     
     # 设置文件权限
     sudo chmod 644 /root/docker-compose.db.yml
