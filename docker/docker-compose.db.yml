@@ -54,23 +54,23 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-knowledge_graph}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       # MySQL 内存配置，优化内存使用
-      MYSQL_INNODB_BUFFER_POOL_SIZE: 64M
-      MYSQL_INNODB_LOG_BUFFER_SIZE: 8M
-      MYSQL_INNODB_LOG_FILE_SIZE: 24M
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 128M
+      MYSQL_INNODB_LOG_BUFFER_SIZE: 16M
+      MYSQL_INNODB_LOG_FILE_SIZE: 48M
       MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT: 2
-      MYSQL_KEY_BUFFER_SIZE: 16M
+      MYSQL_KEY_BUFFER_SIZE: 32M
       MYSQL_QUERY_CACHE_SIZE: 0
       MYSQL_QUERY_CACHE_TYPE: 0
       MYSQL_INNODB_FLUSH_METHOD: O_DIRECT
       # 优化临时表处理
-      MYSQL_INNODB_TEMP_DATA_FILE_PATH: ibtmp1:12M:autoextend:max:64M
-      MYSQL_TMP_TABLE_SIZE: 16M
-      MYSQL_MAX_HEAP_TABLE_SIZE: 16M
+      MYSQL_INNODB_TEMP_DATA_FILE_PATH: ibtmp1:24M:autoextend:max:128M
+      MYSQL_TMP_TABLE_SIZE: 32M
+      MYSQL_MAX_HEAP_TABLE_SIZE: 32M
       # 优化排序和连接
-      MYSQL_SORT_BUFFER_SIZE: 256K
-      MYSQL_JOIN_BUFFER_SIZE: 128K
-      MYSQL_READ_BUFFER_SIZE: 128K
-      MYSQL_READ_RND_BUFFER_SIZE: 256K
+      MYSQL_SORT_BUFFER_SIZE: 512K
+      MYSQL_JOIN_BUFFER_SIZE: 256K
+      MYSQL_READ_BUFFER_SIZE: 256K
+      MYSQL_READ_RND_BUFFER_SIZE: 512K
     volumes:
       - mysql_data:/var/lib/mysql  # 数据持久化
       - mysql_tmp:/tmp  # 临时文件目录
@@ -82,9 +82,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 192M  # 降低启动内存
+          memory: 384M  # 增加启动内存
         reservations:
-          memory: 128M  # 降低运行内存
+          memory: 256M  # 增加运行内存
     restart: unless-stopped
     networks:
       - app-network
