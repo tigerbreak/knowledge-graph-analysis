@@ -1,12 +1,24 @@
 name: Deploy to Production
 
 on:
-  workflow_dispatch:  # 只允许手动触发
+  push:
+    branches:
+      - main
+      - master
+      - release/*
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'docker/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:  # 保留手动触发选项
 
 env:
   SERVER_USER: ${{ secrets.SERVER_USER }}
   SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
   PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+  DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
   # 阿里云容器镜像服务配置
   ALIYUN_REGISTRY: registry.cn-hongkong.aliyuncs.com
   ALIYUN_NAMESPACE: tongihttigerbreak
@@ -23,6 +35,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
           PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
         run: |
           chmod +x ./deploy/init-server.sh
           ./deploy/init-server.sh
@@ -111,6 +124,7 @@ jobs:
           ALIYUN_REPOSITORY: ${{ env.ALIYUN_REPOSITORY }}
           ALIYUN_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
           ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
         run: |
           chmod +x ./deploy/deploy.sh
           ./deploy/deploy.sh
