@@ -93,8 +93,8 @@ if IS_K8S:
     NEO4J_URI = "bolt://neo4j-service:7687"
 elif IS_DOCKER:
     # Docker环境配置
-    DB_HOST = 'myproject-mysql-1'
-    NEO4J_URI = "bolt://myproject-neo4j-1:7687"
+    DB_HOST = '113.45.235.2'  # 使用固定IP地址
+    NEO4J_URI = "bolt://113.45.235.2:7687"  # 使用固定IP地址
 else:
     # 本地环境配置
     DB_HOST = 'localhost'
