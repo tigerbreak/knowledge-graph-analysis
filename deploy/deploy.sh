@@ -153,13 +153,14 @@ deploy() {
             log "准备清理的镜像："
             docker images | grep "$DOCKER_IMAGE" | grep -v "latest" || true
             
-            # 获取所有镜像标签
-            ALL_TAGS=$(docker images | grep "$DOCKER_IMAGE" | awk '{print \$2}' | grep -v "latest")
+            # 获取所有镜像标签并按时间排序
+            ALL_TAGS=$(docker images --format "{{.Tag}}" --filter "reference=$DOCKER_IMAGE" | grep -v "latest" | sort -r)
             
-            # 只保留当前和上一个版本
+            # 保留最新版本，删除其他所有版本
             if [ -n "$ALL_TAGS" ]; then
                 log "开始清理旧镜像..."
-                for tag in $ALL_TAGS; do
+                # 跳过第一个标签（最新版本），删除其余所有标签
+                echo "$ALL_TAGS" | tail -n +2 | while read tag; do
                     log "删除镜像标签: $tag"
                     docker rmi "$DOCKER_IMAGE:$tag" || true
                 done
@@ -177,11 +178,7 @@ deploy() {
             df -h | grep /dev/vda1
             docker system df -v
         else
-            log "容器启动失败，保留旧镜像以便回滚"
-            log "失败的容器状态："
-            docker-compose ps
-            log "容器日志："
-            docker-compose logs --tail=50
+            log "❌ 新容器启动失败，请检查日志"
             exit 1
         fi
 EOF
