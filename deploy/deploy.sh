@@ -19,6 +19,21 @@ if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || 
     exit 1
 fi
 
+# 替换环境变量
+log "替换环境变量..."
+sed -i "s|\${ALIYUN_REGISTRY}|${ALIYUN_REGISTRY}|g" docker/docker-compose.yml
+sed -i "s|\${ALIYUN_NAMESPACE}|${ALIYUN_NAMESPACE}|g" docker/docker-compose.yml
+sed -i "s|\${ALIYUN_REPOSITORY}|${ALIYUN_REPOSITORY}|g" docker/docker-compose.yml
+sed -i "s|\${DB_SERVER_IP}|${DB_SERVER_IP}|g" docker/docker-compose.yml
+sed -i "s|\${NEO4J_USER:-neo4j}|${NEO4J_USER:-neo4j}|g" docker/docker-compose.yml
+sed -i "s|\${NEO4J_PASSWORD:-root123321}|${NEO4J_PASSWORD:-root123321}|g" docker/docker-compose.yml
+sed -i "s|\${MYSQL_ROOT_PASSWORD:-123456}|${MYSQL_ROOT_PASSWORD:-123456}|g" docker/docker-compose.yml
+sed -i "s|\${MYSQL_DATABASE:-knowledge_graph}|${MYSQL_DATABASE:-knowledge_graph}|g" docker/docker-compose.yml
+sed -i "s|\${MYSQL_USER:-root}|${MYSQL_USER:-root}|g" docker/docker-compose.yml
+sed -i "s|\${MYSQL_PASSWORD:-123456}|${MYSQL_PASSWORD:-123456}|g" docker/docker-compose.yml
+sed -i "s|\${MYSQL_PORT:-3307}|${MYSQL_PORT:-3307}|g" docker/docker-compose.yml
+echo "✅ 环境变量替换完成"
+
 # 定义远程服务器信息
 REMOTE_HOST="$SERVER_IP"
 REMOTE_USER="$SERVER_USER"
