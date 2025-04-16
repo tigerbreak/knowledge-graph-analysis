@@ -128,11 +128,11 @@ process_config_file() {
         exit 1
     fi
     
-    # 使用 sudo 创建文件并设置权限
-    sudo sed -e "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" \
-        -e "s/\${MYSQL_ROOT_PASSWORD}/${MYSQL_ROOT_PASSWORD}/g" \
-        -e "s/\${NEO4J_PASSWORD}/${NEO4J_PASSWORD}/g" \
-        -e "s/\${NEO4J_AUTH}/${NEO4J_AUTH}/g" \
+    # 使用 sudo 创建文件并设置权限，使用 # 作为分隔符
+    sudo sed -e "s#\${MYSQL_DATABASE}#${MYSQL_DATABASE}#g" \
+        -e "s#\${MYSQL_ROOT_PASSWORD}#${MYSQL_ROOT_PASSWORD}#g" \
+        -e "s#\${NEO4J_PASSWORD}#${NEO4J_PASSWORD}#g" \
+        -e "s#\${NEO4J_AUTH}#${NEO4J_AUTH}#g" \
         "/root/docker-compose.db.yml" > /root/docker-compose.db.yml
     
     # 设置文件权限
