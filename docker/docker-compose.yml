@@ -29,6 +29,7 @@ services:
 
   backend:
     image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:backend-latest
+    container_name: knowledge_graph_backend
     ports:
       - "8000:8000"  # 后端端口映射，可根据需要修改
     environment:
@@ -42,12 +43,6 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       MYSQL_HOST: ${DB_SERVER_IP}
       MYSQL_PORT: ${MYSQL_PORT:-3307}
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-        reservations:
-          memory: 32M
     restart: unless-stopped
     networks:
       - app-network
