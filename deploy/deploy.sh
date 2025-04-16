@@ -72,91 +72,15 @@ deploy() {
             echo "[$(date +'%Y-%m-%d %H:%M:%S')] \$1"
         }
 
-        # 替换环境变量
-        log "替换环境变量..."
+        # 进入项目目录
         cd "\$PROJECT_DIR/docker" || exit 1
         log "当前目录: \$(pwd)"
-
-        # 打印所有环境变量
-        log "当前环境变量值："
-        log "ALIYUN_REGISTRY: \${ALIYUN_REGISTRY}"
-        log "ALIYUN_NAMESPACE: \${ALIYUN_NAMESPACE}"
-        log "ALIYUN_REPOSITORY: \${ALIYUN_REPOSITORY}"
-        log "DB_SERVER_IP: \${DB_SERVER_IP}"
-        log "NEO4J_USER: \${NEO4J_USER:-neo4j}"
-        log "NEO4J_PASSWORD: \${NEO4J_PASSWORD:-root123321}"
-        log "MYSQL_ROOT_PASSWORD: \${MYSQL_ROOT_PASSWORD:-123456}"
-        log "MYSQL_DATABASE: \${MYSQL_DATABASE:-knowledge_graph}"
-        log "MYSQL_USER: \${MYSQL_USER:-root}"
-        log "MYSQL_PASSWORD: \${MYSQL_PASSWORD:-123456}"
-        log "MYSQL_PORT: \${MYSQL_PORT:-3307}"
 
         # 检查文件是否存在
         if [ ! -f "docker-compose.yml" ]; then
             log "错误: docker-compose.yml 文件不存在"
             exit 1
         fi
-
-        # 备份原文件
-        cp docker-compose.yml docker-compose.yml.bak
-        log "已备份原配置文件"
-
-        # 替换环境变量并检查结果
-        log "开始替换环境变量..."
-        sed -i "s|\${ALIYUN_REGISTRY}|\${ALIYUN_REGISTRY}|g" docker-compose.yml && log "替换 ALIYUN_REGISTRY 成功" || log "替换 ALIYUN_REGISTRY 失败"
-        sed -i "s|\${ALIYUN_NAMESPACE}|\${ALIYUN_NAMESPACE}|g" docker-compose.yml && log "替换 ALIYUN_NAMESPACE 成功" || log "替换 ALIYUN_NAMESPACE 失败"
-        sed -i "s|\${ALIYUN_REPOSITORY}|\${ALIYUN_REPOSITORY}|g" docker-compose.yml && log "替换 ALIYUN_REPOSITORY 成功" || log "替换 ALIYUN_REPOSITORY 失败"
-        sed -i "s|\${DB_SERVER_IP}|\${DB_SERVER_IP}|g" docker-compose.yml && log "替换 DB_SERVER_IP 成功" || log "替换 DB_SERVER_IP 失败"
-        sed -i "s|\${NEO4J_USER:-neo4j}|\${NEO4J_USER:-neo4j}|g" docker-compose.yml && log "替换 NEO4J_USER 成功" || log "替换 NEO4J_USER 失败"
-        sed -i "s|\${NEO4J_PASSWORD:-root123321}|\${NEO4J_PASSWORD:-root123321}|g" docker-compose.yml && log "替换 NEO4J_PASSWORD 成功" || log "替换 NEO4J_PASSWORD 失败"
-        sed -i "s|\${MYSQL_ROOT_PASSWORD:-123456}|\${MYSQL_ROOT_PASSWORD:-123456}|g" docker-compose.yml && log "替换 MYSQL_ROOT_PASSWORD 成功" || log "替换 MYSQL_ROOT_PASSWORD 失败"
-        sed -i "s|\${MYSQL_DATABASE:-knowledge_graph}|\${MYSQL_DATABASE:-knowledge_graph}|g" docker-compose.yml && log "替换 MYSQL_DATABASE 成功" || log "替换 MYSQL_DATABASE 失败"
-        sed -i "s|\${MYSQL_USER:-root}|\${MYSQL_USER:-root}|g" docker-compose.yml && log "替换 MYSQL_USER 成功" || log "替换 MYSQL_USER 失败"
-        sed -i "s|\${MYSQL_PASSWORD:-123456}|\${MYSQL_PASSWORD:-123456}|g" docker-compose.yml && log "替换 MYSQL_PASSWORD 成功" || log "替换 MYSQL_PASSWORD 失败"
-        sed -i "s|\${MYSQL_PORT:-3307}|\${MYSQL_PORT:-3307}|g" docker-compose.yml && log "替换 MYSQL_PORT 成功" || log "替换 MYSQL_PORT 失败"
-
-        # 验证替换结果
-        log "验证环境变量替换结果..."
-        if grep -q "\${" docker-compose.yml; then
-            log "警告: 文件中仍存在未替换的变量"
-            grep -n "\${" docker-compose.yml
-        else
-            log "✅ 所有环境变量替换完成"
-        fi
-
-        # 显示替换后的文件内容
-        log "替换后的文件内容:"
-        cat docker-compose.yml
-
-        # 检查基础镜像函数
-        check_and_pull_image() {
-            local IMAGE_NAME=$1
-            local IMAGE_TAG=$2
-            local FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
-            
-            log "检查 ${FULL_IMAGE} 镜像..."
-            if docker images ${FULL_IMAGE} --quiet | grep -q .; then
-                log "${FULL_IMAGE} 镜像已存在，检查是否需要更新..."
-                # 获取本地镜像 ID
-                LOCAL_IMAGE_ID=$(docker images ${FULL_IMAGE} --quiet)
-                
-                # 获取远程镜像信息
-                REMOTE_DIGEST=$(docker manifest inspect ${FULL_IMAGE} | grep -i sha256 | head -1)
-                
-                # 获取本地镜像 digest
-                LOCAL_DIGEST=$(docker image inspect ${FULL_IMAGE} | grep -i sha256 | head -1)
-                
-                if [ "$LOCAL_DIGEST" = "$REMOTE_DIGEST" ]; then
-                    log "${FULL_IMAGE} 本地镜像已是最新版本，跳过拉取"
-                else
-                    log "${FULL_IMAGE} 发现新版本，开始拉取..."
-                    docker pull ${FULL_IMAGE} 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [$FULL_IMAGE] $line"; done
-                fi
-            else
-                log "本地不存在 ${FULL_IMAGE} 镜像，开始拉取..."
-                docker pull ${FULL_IMAGE} 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [$FULL_IMAGE] $line"; done
-            fi
-        }
 
         # 显示系统信息
         log "系统信息："
@@ -179,14 +103,17 @@ deploy() {
         log "后端镜像完整引用: ${DOCKER_IMAGE}:backend-latest"
         log "前端镜像完整引用: ${DOCKER_IMAGE}:frontend-latest"
 
-        # 拉取最新镜像并显示进度
-        log "=== 开始拉取后端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [后端] $line"; done
-        echo "✅ 后端镜像拉取完成"
+        # 并行拉取最新镜像并显示进度
+        log "=== 开始拉取镜像 ==="
+        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [后端] $line"; done &
+        BACKEND_PID=$!
         
-        log "=== 开始拉取前端镜像 ==="
-        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [前端] $line"; done
-        echo "✅ 前端镜像拉取完成"
+        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [前端] $line"; done &
+        FRONTEND_PID=$!
+        
+        # 等待两个拉取完成
+        wait $BACKEND_PID $FRONTEND_PID
+        echo "✅ 镜像拉取完成"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
@@ -195,34 +122,6 @@ deploy() {
         # 显示镜像大小变化
         log "镜像存储信息："
         docker system df -v | grep -A 10 "Images space usage:"
-
-        # 进入项目目录
-        cd "$PROJECT_DIR" || exit 1
-        log "当前工作目录: $(pwd)"
-        log "项目目录内容:"
-        ls -la
-        
-        # 检查 docker 目录是否存在
-        if [ ! -d "docker" ]; then
-            log "错误: docker 目录不存在"
-            log "当前目录内容:"
-            ls -la
-            exit 1
-        fi
-
-        # 进入项目目录下的 docker 目录
-        cd "$PROJECT_DIR/docker" || exit 1
-        log "当前工作目录: $(pwd)"
-        log "docker 目录内容:"
-        ls -la
-        
-        # 检查 docker-compose.yml 是否存在
-        if [ ! -f "docker-compose.yml" ]; then
-            log "错误: docker-compose.yml 文件不存在"
-            log "当前目录内容:"
-            ls -la
-            exit 1
-        fi
 
         # 停止并删除旧容器
         log "停止并删除旧容器..."

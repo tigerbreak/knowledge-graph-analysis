@@ -18,29 +18,25 @@ env:
   SERVER_USER: ${{ secrets.SERVER_USER }}
   SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
   PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
-  DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
-  # 阿里云容器镜像服务配置
+  DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
   ALIYUN_REGISTRY: registry.cn-hongkong.aliyuncs.com
   ALIYUN_NAMESPACE: tongihttigerbreak
   ALIYUN_REPOSITORY: tigerhouse
 
 jobs:
+  # 第一阶段：初始化服务器环境
   init-server:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Execute init-server.sh
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
-          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
-          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
+      
+      # 安装必要的工具
+      - name: Install required tools
         run: |
-          chmod +x ./deploy/init-server.sh
-          ./deploy/init-server.sh
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync sshpass
+          sudo apt-get update
+          sudo apt-get install -y rsync sshpass
+          
+      # 检查 Docker 目录
       - name: Check Docker directory
         run: |
           echo "=== 检查本地 Docker 目录 ==="
@@ -55,6 +51,32 @@ jobs:
           echo "本地 Docker 目录内容:"
           ls -la docker/
           echo "✅ 本地 Docker 目录检查完成"
+          
+      # 替换环境变量
+      - name: Replace environment variables
+        run: |
+          echo "=== 替换环境变量 ==="
+          # 备份原文件
+          cp docker/docker-compose.yml docker/docker-compose.yml.bak
+          
+          # 一次性替换所有环境变量
+          sed -i \
+            -e "s|\${ALIYUN_REGISTRY}|${{ env.ALIYUN_REGISTRY }}|g" \
+            -e "s|\${ALIYUN_NAMESPACE}|${{ env.ALIYUN_NAMESPACE }}|g" \
+            -e "s|\${ALIYUN_REPOSITORY}|${{ env.ALIYUN_REPOSITORY }}|g" \
+            -e "s|\${DB_SERVER_IP}|${{ secrets.DB_SERVER_IP }}|g" \
+            -e "s|\${NEO4J_USER:-neo4j}|${{ secrets.NEO4J_USER }}|g" \
+            -e "s|\${NEO4J_PASSWORD:-root123321}|${{ secrets.NEO4J_PASSWORD }}|g" \
+            -e "s|\${MYSQL_ROOT_PASSWORD:-123456}|${{ secrets.MYSQL_ROOT_PASSWORD }}|g" \
+            -e "s|\${MYSQL_DATABASE:-knowledge_graph}|${{ secrets.MYSQL_DATABASE }}|g" \
+            -e "s|\${MYSQL_USER:-root}|${{ secrets.MYSQL_USER }}|g" \
+            -e "s|\${MYSQL_PASSWORD:-123456}|${{ secrets.MYSQL_PASSWORD }}|g" \
+            -e "s|\${MYSQL_PORT:-3307}|${{ secrets.MYSQL_PORT }}|g" \
+            docker/docker-compose.yml
+          
+          echo "✅ 环境变量替换完成"
+          
+      # 复制 Docker 目录到服务器
       - name: Copy Docker directory to server
         run: |
           echo "=== 开始复制 Docker 目录到服务器 ==="
@@ -70,12 +92,27 @@ jobs:
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" "cat /root/${{ secrets.PROJECT_NAME }}/docker/docker-compose.yml"
           
           echo "✅ Docker 目录复制完成"
+          
+      # 验证服务器上的 Docker 目录
       - name: Verify Docker directory on server
         run: |
           echo "=== 验证服务器上的 Docker 目录 ==="
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" "echo '服务器 Docker 目录内容:'; ls -la /root/${{ secrets.PROJECT_NAME }}/docker/"
           echo "✅ 服务器 Docker 目录验证完成"
+          
+      # 执行初始化脚本
+      - name: Execute init-server.sh
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+        run: |
+          chmod +x ./deploy/init-server.sh
+          ./deploy/init-server.sh
 
+  # 第二阶段：并行构建前端和后端镜像
   build-images:
     needs: init-server
     runs-on: ubuntu-latest
@@ -92,29 +129,38 @@ jobs:
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
 
-      - name: Build and push backend image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: docker/backend.Dockerfile
-          push: true
-          tags: |
-            ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest
+      # 并行构建前端和后端镜像
+      - name: Build and push images
+        run: |
+          # 构建后端镜像
+          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest -f docker/backend.Dockerfile . &
+          BACKEND_PID=$!
+          
+          # 构建前端镜像
+          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest -f docker/frontend.Dockerfile ./frontend &
+          FRONTEND_PID=$!
+          
+          # 等待两个构建完成
+          wait $BACKEND_PID $FRONTEND_PID
+          
+          # 推送镜像
+          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest &
+          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest &
+          wait
 
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./frontend
-          file: docker/frontend.Dockerfile
-          push: true
-          tags: |
-            ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest
-
+  # 第三阶段：部署应用
   deploy:
     needs: build-images
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
+      # 准备部署环境
+      - name: Prepare deployment
+        run: |
+          chmod +x ./deploy/deploy.sh
+          
+      # 执行部署
       - name: Execute deploy.sh
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
@@ -124,14 +170,15 @@ jobs:
           ALIYUN_REPOSITORY: ${{ env.ALIYUN_REPOSITORY }}
           ALIYUN_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
           ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
-          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}  # 添加数据库服务器IP
-        run: |
-          chmod +x ./deploy/deploy.sh
-          ./deploy/deploy.sh
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+        run: ./deploy/deploy.sh
+
+      # 部署结果通知
       - name: Notify on success
         if: success()
         run: |
           echo "Deployment completed successfully!"
+          
       - name: Notify on failure
         if: failure()
         run: |
