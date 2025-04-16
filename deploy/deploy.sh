@@ -14,7 +14,7 @@ log() {
 }
 
 # 检查必要的环境变量
-if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_REGISTRY" ] || [ -z "$ALIYUN_NAMESPACE" ] || [ -z "$ALIYUN_REPOSITORY" ] || [ -z "$ALIYUN_USERNAME" ] || [ -z "$ALIYUN_PASSWORD" ]; then
+if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_REGISTRY" ] || [ -z "$ALIYUN_NAMESPACE" ] || [ -z "$ALIYUN_REPOSITORY" ] || [ -z "$ALIYUN_USERNAME" ] || [ -z "$ALIYUN_PASSWORD" ] || [ -z "$DB_SERVER_IP" ]; then
     echo "错误：缺少必要的环境变量"
     exit 1
 fi
@@ -35,6 +35,7 @@ log "远程用户：$REMOTE_USER"
 log "项目名称：$PROJECT_NAME"
 log "项目目录：$PROJECT_DIR"
 log "Docker镜像：$DOCKER_IMAGE"
+log "数据库服务器IP：$DB_SERVER_IP"
 
 # 获取系统信息
 log "系统信息："
@@ -56,6 +57,15 @@ deploy() {
         export PROJECT_NAME='myproject'
         export PROJECT_DIR="/root/\$PROJECT_NAME"
         export DOCKER_IMAGE="\$ALIYUN_REGISTRY/\$ALIYUN_NAMESPACE/\$ALIYUN_REPOSITORY"
+        
+        # 设置数据库相关环境变量
+        export DB_SERVER_IP='${DB_SERVER_IP}'
+        export NEO4J_USER='${NEO4J_USER:-neo4j}'
+        export NEO4J_PASSWORD='${NEO4J_PASSWORD:-root123321}'
+        export MYSQL_ROOT_PASSWORD='${MYSQL_ROOT_PASSWORD:-123456}'
+        export MYSQL_DATABASE='${MYSQL_DATABASE:-knowledge_graph}'
+        export MYSQL_USER='${MYSQL_USER:-root}'
+        export MYSQL_PASSWORD='${MYSQL_PASSWORD:-123456}'
 
         # 设置显示时间的函数
         log() {
@@ -98,12 +108,6 @@ deploy() {
         log "Docker 信息："
         docker system df -v
         echo "✅ 系统信息检查完成"
-
-        # 检查基础镜像
-        log "=== 检查基础镜像 ==="
-        check_and_pull_image "mysql" "8.0"    # 与 docker-compose.yml 中的版本一致
-        check_and_pull_image "neo4j" "4.4"    # 与 docker-compose.yml 中的版本一致
-        echo "✅ 基础镜像检查完成"
 
         # 登录到阿里云容器镜像服务
         log "登录到阿里云容器镜像服务..."
