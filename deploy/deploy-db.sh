@@ -9,6 +9,15 @@ MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
 NEO4J_PASSWORD=${NEO4J_PASSWORD:-root123321}
 NEO4J_AUTH="neo4j/${NEO4J_PASSWORD}"
 
+# 输出环境变量配置
+echo "=== 环境变量配置 ==="
+echo "MYSQL_DATABASE: $MYSQL_DATABASE"
+echo "MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:0:2}******"
+echo "NEO4J_PASSWORD: ${NEO4J_PASSWORD:0:2}******"
+echo "NEO4J_AUTH: $NEO4J_AUTH"
+echo "==================="
+echo
+
 # 日志函数
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
@@ -95,9 +104,13 @@ check_and_pull_images() {
     )
     
     for image in "${images[@]}"; do
+        # 检查镜像是否存在
         if ! docker images -q "$image" &> /dev/null; then
             log "拉取镜像: $image"
-            docker pull "$image"
+            if ! docker pull "$image"; then
+                log "错误: 拉取镜像 $image 失败"
+                exit 1
+            fi
         else
             log "镜像已存在: $image"
         fi
@@ -108,29 +121,33 @@ check_and_pull_images() {
 # 处理配置文件
 process_config_file() {
     log "=== 处理配置文件 ==="
-    # 创建临时文件
-    local temp_file=$(mktemp)
     
-    # 替换环境变量
-    cat docker/docker-compose.db.yml | \
-    sed "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" | \
-    sed "s/\${MYSQL_ROOT_PASSWORD}/${MYSQL_ROOT_PASSWORD}/g" | \
-    sed "s/\${NEO4J_PASSWORD}/${NEO4J_PASSWORD}/g" | \
-    sed "s/\${NEO4J_AUTH}/${NEO4J_AUTH}/g" > "$temp_file"
+    # 检查源文件是否存在
+    if [ ! -f "docker/docker-compose.db.yml" ]; then
+        log "错误: docker/docker-compose.db.yml 文件不存在"
+        exit 1
+    fi
     
-    # 显示处理后的内容
-    log "配置文件内容:"
-    cat "$temp_file"
+    # 直接复制并替换环境变量到 /root 目录
+    sed -e "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" \
+        -e "s/\${MYSQL_ROOT_PASSWORD}/${MYSQL_ROOT_PASSWORD}/g" \
+        -e "s/\${NEO4J_PASSWORD}/${NEO4J_PASSWORD}/g" \
+        -e "s/\${NEO4J_AUTH}/${NEO4J_AUTH}/g" \
+        "docker/docker-compose.db.yml" > /root/docker-compose.db.yml
     
-    # 移动到最终位置
-    mv "$temp_file" ~/docker-compose.db.yml
+    # 检查文件是否成功创建
+    if [ ! -f /root/docker-compose.db.yml ]; then
+        log "错误: 创建配置文件失败"
+        exit 1
+    fi
+    
     log "配置文件处理完成"
 }
 
 # 停止并删除旧容器
 cleanup_old_containers() {
     log "=== 清理旧容器 ==="
-    docker-compose -f ~/docker-compose.db.yml down || true
+    docker-compose -f /root/docker-compose.db.yml down || true
     log "清理完成"
 }
 
@@ -142,7 +159,7 @@ start_services() {
     MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
     NEO4J_PASSWORD="$NEO4J_PASSWORD" \
     NEO4J_AUTH="$NEO4J_AUTH" \
-    docker-compose -f ~/docker-compose.db.yml up -d
+    docker-compose -f /root/docker-compose.db.yml up -d
     
     # 等待服务启动
     log "等待服务启动..."
@@ -150,7 +167,7 @@ start_services() {
     
     # 检查服务状态
     log "检查服务状态..."
-    docker-compose -f ~/docker-compose.db.yml ps
+    docker-compose -f /root/docker-compose.db.yml ps
     log "服务启动完成"
 }
 
