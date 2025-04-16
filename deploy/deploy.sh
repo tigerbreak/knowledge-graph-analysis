@@ -21,18 +21,60 @@ fi
 
 # 替换环境变量
 log "替换环境变量..."
-sed -i "s|\${ALIYUN_REGISTRY}|${ALIYUN_REGISTRY}|g" docker/docker-compose.yml
-sed -i "s|\${ALIYUN_NAMESPACE}|${ALIYUN_NAMESPACE}|g" docker/docker-compose.yml
-sed -i "s|\${ALIYUN_REPOSITORY}|${ALIYUN_REPOSITORY}|g" docker/docker-compose.yml
-sed -i "s|\${DB_SERVER_IP}|${DB_SERVER_IP}|g" docker/docker-compose.yml
-sed -i "s|\${NEO4J_USER:-neo4j}|${NEO4J_USER:-neo4j}|g" docker/docker-compose.yml
-sed -i "s|\${NEO4J_PASSWORD:-root123321}|${NEO4J_PASSWORD:-root123321}|g" docker/docker-compose.yml
-sed -i "s|\${MYSQL_ROOT_PASSWORD:-123456}|${MYSQL_ROOT_PASSWORD:-123456}|g" docker/docker-compose.yml
-sed -i "s|\${MYSQL_DATABASE:-knowledge_graph}|${MYSQL_DATABASE:-knowledge_graph}|g" docker/docker-compose.yml
-sed -i "s|\${MYSQL_USER:-root}|${MYSQL_USER:-root}|g" docker/docker-compose.yml
-sed -i "s|\${MYSQL_PASSWORD:-123456}|${MYSQL_PASSWORD:-123456}|g" docker/docker-compose.yml
-sed -i "s|\${MYSQL_PORT:-3307}|${MYSQL_PORT:-3307}|g" docker/docker-compose.yml
-echo "✅ 环境变量替换完成"
+
+# 打印所有环境变量
+log "当前环境变量值："
+log "ALIYUN_REGISTRY: ${ALIYUN_REGISTRY}"
+log "ALIYUN_NAMESPACE: ${ALIYUN_NAMESPACE}"
+log "ALIYUN_REPOSITORY: ${ALIYUN_REPOSITORY}"
+log "DB_SERVER_IP: ${DB_SERVER_IP}"
+log "NEO4J_USER: ${NEO4J_USER:-neo4j}"
+log "NEO4J_PASSWORD: ${NEO4J_PASSWORD:-root123321}"
+log "MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}"
+log "MYSQL_DATABASE: ${MYSQL_DATABASE:-knowledge_graph}"
+log "MYSQL_USER: ${MYSQL_USER:-root}"
+log "MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}"
+log "MYSQL_PORT: ${MYSQL_PORT:-3307}"
+
+cd "$PROJECT_DIR/docker" || exit 1
+log "当前目录: $(pwd)"
+
+# 检查文件是否存在
+if [ ! -f "docker-compose.yml" ]; then
+    log "错误: docker-compose.yml 文件不存在"
+    exit 1
+fi
+
+# 备份原文件
+cp docker-compose.yml docker-compose.yml.bak
+log "已备份原配置文件"
+
+# 替换环境变量并检查结果
+log "开始替换环境变量..."
+sed -i "s|\${ALIYUN_REGISTRY}|${ALIYUN_REGISTRY}|g" docker-compose.yml && log "替换 ALIYUN_REGISTRY 成功" || log "替换 ALIYUN_REGISTRY 失败"
+sed -i "s|\${ALIYUN_NAMESPACE}|${ALIYUN_NAMESPACE}|g" docker-compose.yml && log "替换 ALIYUN_NAMESPACE 成功" || log "替换 ALIYUN_NAMESPACE 失败"
+sed -i "s|\${ALIYUN_REPOSITORY}|${ALIYUN_REPOSITORY}|g" docker-compose.yml && log "替换 ALIYUN_REPOSITORY 成功" || log "替换 ALIYUN_REPOSITORY 失败"
+sed -i "s|\${DB_SERVER_IP}|${DB_SERVER_IP}|g" docker-compose.yml && log "替换 DB_SERVER_IP 成功" || log "替换 DB_SERVER_IP 失败"
+sed -i "s|\${NEO4J_USER:-neo4j}|${NEO4J_USER:-neo4j}|g" docker-compose.yml && log "替换 NEO4J_USER 成功" || log "替换 NEO4J_USER 失败"
+sed -i "s|\${NEO4J_PASSWORD:-root123321}|${NEO4J_PASSWORD:-root123321}|g" docker-compose.yml && log "替换 NEO4J_PASSWORD 成功" || log "替换 NEO4J_PASSWORD 失败"
+sed -i "s|\${MYSQL_ROOT_PASSWORD:-123456}|${MYSQL_ROOT_PASSWORD:-123456}|g" docker-compose.yml && log "替换 MYSQL_ROOT_PASSWORD 成功" || log "替换 MYSQL_ROOT_PASSWORD 失败"
+sed -i "s|\${MYSQL_DATABASE:-knowledge_graph}|${MYSQL_DATABASE:-knowledge_graph}|g" docker-compose.yml && log "替换 MYSQL_DATABASE 成功" || log "替换 MYSQL_DATABASE 失败"
+sed -i "s|\${MYSQL_USER:-root}|${MYSQL_USER:-root}|g" docker-compose.yml && log "替换 MYSQL_USER 成功" || log "替换 MYSQL_USER 失败"
+sed -i "s|\${MYSQL_PASSWORD:-123456}|${MYSQL_PASSWORD:-123456}|g" docker-compose.yml && log "替换 MYSQL_PASSWORD 成功" || log "替换 MYSQL_PASSWORD 失败"
+sed -i "s|\${MYSQL_PORT:-3307}|${MYSQL_PORT:-3307}|g" docker-compose.yml && log "替换 MYSQL_PORT 成功" || log "替换 MYSQL_PORT 失败"
+
+# 验证替换结果
+log "验证环境变量替换结果..."
+if grep -q "\${" docker-compose.yml; then
+    log "警告: 文件中仍存在未替换的变量"
+    grep -n "\${" docker-compose.yml
+else
+    log "✅ 所有环境变量替换完成"
+fi
+
+# 显示替换后的文件内容
+log "替换后的文件内容:"
+cat docker-compose.yml
 
 # 定义远程服务器信息
 REMOTE_HOST="$SERVER_IP"
