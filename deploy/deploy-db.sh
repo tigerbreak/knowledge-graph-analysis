@@ -123,17 +123,20 @@ process_config_file() {
     log "=== 处理配置文件 ==="
     
     # 检查源文件是否存在
-    if [ ! -f "docker/docker-compose.db.yml" ]; then
-        log "错误: docker/docker-compose.db.yml 文件不存在"
+    if [ ! -f "/root/docker-compose.db.yml" ]; then
+        log "错误: /root/docker-compose.db.yml 文件不存在"
         exit 1
     fi
     
-    # 直接复制并替换环境变量到 /root 目录
-    sed -e "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" \
+    # 使用 sudo 创建文件并设置权限
+    sudo sed -e "s/\${MYSQL_DATABASE}/${MYSQL_DATABASE}/g" \
         -e "s/\${MYSQL_ROOT_PASSWORD}/${MYSQL_ROOT_PASSWORD}/g" \
         -e "s/\${NEO4J_PASSWORD}/${NEO4J_PASSWORD}/g" \
         -e "s/\${NEO4J_AUTH}/${NEO4J_AUTH}/g" \
-        "docker/docker-compose.db.yml" > /root/docker-compose.db.yml
+        "/root/docker-compose.db.yml" > /root/docker-compose.db.yml
+    
+    # 设置文件权限
+    sudo chmod 644 /root/docker-compose.db.yml
     
     # 检查文件是否成功创建
     if [ ! -f /root/docker-compose.db.yml ]; then
