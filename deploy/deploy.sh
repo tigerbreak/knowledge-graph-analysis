@@ -105,10 +105,10 @@ deploy() {
 
         # 并行拉取最新镜像并显示进度
         log "=== 开始拉取镜像 ==="
-        docker pull "${DOCKER_IMAGE}:backend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [后端] $line"; done &
+        docker pull --progress=plain "${DOCKER_IMAGE}:backend-latest" &
         BACKEND_PID=$!
         
-        docker pull "${DOCKER_IMAGE}:frontend-latest" 2>&1 | while read line; do echo "[$(date +'%Y-%m-%d %H:%M:%S')] [前端] $line"; done &
+        docker pull --progress=plain "${DOCKER_IMAGE}:frontend-latest" &
         FRONTEND_PID=$!
         
         # 等待两个拉取完成
