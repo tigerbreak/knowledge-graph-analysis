@@ -91,14 +91,17 @@ if IS_K8S:
     # K8s环境配置
     DB_HOST = 'mysql-service'
     NEO4J_URI = "bolt://neo4j-service:7687"
+    DEFAULT_MYSQL_PORT = '3307'
 elif IS_DOCKER:
     # Docker环境配置
     DB_HOST = '113.45.235.2'  # 使用固定IP地址
     NEO4J_URI = "bolt://113.45.235.2:7687"  # 使用固定IP地址
+    DEFAULT_MYSQL_PORT = '3307'
 else:
     # 本地环境配置
     DB_HOST = 'localhost'
     NEO4J_URI = "bolt://localhost:7687"
+    DEFAULT_MYSQL_PORT = '3306'
 
 # 数据库配置
 DATABASES = {
@@ -108,7 +111,7 @@ DATABASES = {
         'USER': os.getenv('MYSQL_USER', 'root'),
         'PASSWORD': os.getenv('MYSQL_PASSWORD', 'root123'),
         'HOST': os.getenv('MYSQL_HOST', DB_HOST),
-        'PORT': os.getenv('MYSQL_PORT', '3307'),
+        'PORT': os.getenv('MYSQL_PORT', DEFAULT_MYSQL_PORT),
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",

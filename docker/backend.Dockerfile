@@ -2,14 +2,13 @@
 FROM python:3.9
 
 # 设置工作目录
-WORKDIR /app
+WORKDIR /myproject
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
-
 
 # 安装系统依赖
 RUN apt-get update \
@@ -28,7 +27,7 @@ RUN apt-get update \
 RUN pip install --upgrade pip
 
 # 复制整个项目
-COPY . .
+COPY . /myproject/
 
 # 安装依赖
 RUN pip install -r requirements.txt
