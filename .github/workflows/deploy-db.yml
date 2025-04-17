@@ -3,7 +3,8 @@ name: Deploy Database Services
 on:
   push:
     branches:
-      - release/v1.0.3  # 明确指定当前分支
+      - master
+      - release/v1.0.3
     paths:
       - 'docker/docker-compose.db.yml'
       - 'deploy/deploy-db.sh'
