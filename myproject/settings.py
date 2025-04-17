@@ -108,7 +108,7 @@ DATABASES = {
         'USER': os.getenv('MYSQL_USER', 'root'),
         'PASSWORD': os.getenv('MYSQL_PASSWORD', 'root123'),
         'HOST': os.getenv('MYSQL_HOST', DB_HOST),
-        'PORT': os.getenv('MYSQL_PORT', '3306'),
+        'PORT': os.getenv('MYSQL_PORT', '3307'),
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
