@@ -11,6 +11,7 @@ on:
       - 'backend/**'
       - 'docker/**'
       - 'deploy/**'
+      - 'myproject/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:  # 保留手动触发选项
 
