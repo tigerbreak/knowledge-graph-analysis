@@ -1,0 +1,39 @@
+name: Deploy Database Services
+
+on:
+  push:
+    branches:
+      - release/v1.0.3  # 明确指定当前分支
+    paths:
+      - 'docker/docker-compose.db.yml'
+      - 'deploy/deploy-db.sh'
+  workflow_dispatch:  # 保留手动触发选项
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Copy files and Deploy
+        env:
+          SSHPASS: ${{ secrets.DB_SERVER_PASSWORD }}
+        run: |
+          # 复制必要的文件到服务器
+          sshpass -e scp -o StrictHostKeyChecking=no docker/docker-compose.db.yml ${{ secrets.DB_SERVER_USER }}@${{ secrets.DB_SERVER_IP }}:~/docker-compose.db.yml
+          sshpass -e scp -o StrictHostKeyChecking=no deploy/deploy-db.sh ${{ secrets.DB_SERVER_USER }}@${{ secrets.DB_SERVER_IP }}:~/deploy-db.sh
+          
+          # 执行部署脚本
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.DB_SERVER_USER }}@${{ secrets.DB_SERVER_IP }} 'chmod +x ~/deploy-db.sh && ~/deploy-db.sh'
+
+      - name: Verify Services
+        env:
+          SSHPASS: ${{ secrets.DB_SERVER_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.DB_SERVER_USER }}@${{ secrets.DB_SERVER_IP }} 'docker ps' 

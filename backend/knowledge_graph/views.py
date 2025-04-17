@@ -26,10 +26,7 @@ logger = logging.getLogger(__name__)
 neo4j_service = Neo4jService()
 
 # Neo4j connection
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "root123321"
-
+# 移除硬编码的连接信息，使用settings中的配置
 def get_graph():
     """获取 Neo4j 数据库连接"""
     return GraphDatabase.driver(

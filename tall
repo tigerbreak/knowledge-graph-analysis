@@ -1,0 +1,29 @@
+[33mcommit d3f34cfd86fec015a8ee59c2eed28a2589700203[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrelease/v1.0.3[m[33m, [m[1;31morigin/release/v1.0.3[m[33m)[m
+Author: rookie不熬夜 <oncwnuC2v3Mp1hQ4PEXGHtHjYDdY@git.weixin.qq.com>
+Date:   Mon Mar 31 21:38:28 2025 +0800
+
+    docs: 更新 CHANGELOG，添加 v1.0.3 版本更新日志
+
+[33mcommit 06f0862d1b939639bbc85c0bfbe5a88d9cd12233[m[33m ([m[1;33mtag: [m[1;33mv1.0.3[m[33m)[m
+Author: rookie不熬夜 <oncwnuC2v3Mp1hQ4PEXGHtHjYDdY@git.weixin.qq.com>
+Date:   Mon Mar 31 21:33:07 2025 +0800
+
+    refactor: 重构项目结构，优化目录组织，版本 v1.0.3
+
+[33mcommit 5ec938bde7a556904b7bd501b28c62ca18e4afd4[m[33m ([m[1;31morigin/release/v1.0.2[m[33m, [m[1;32mrelease/v1.0.2[m[33m)[m
+Author: rookie不熬夜 <oncwnuC2v3Mp1hQ4PEXGHtHjYDdY@git.weixin.qq.com>
+Date:   Sat Mar 29 16:02:35 2025 +0800
+
+    docs: update changelog for v1.0.2
+
+[33mcommit 83f467e5ec45298c81c3b8a8f1ff0042574d0db9[m[33m ([m[1;33mtag: [m[1;33mv1.0.2[m[33m, [m[1;32mmaster[m[33m)[m
+Author: rookie不熬夜 <oncwnuC2v3Mp1hQ4PEXGHtHjYDdY@git.weixin.qq.com>
+Date:   Sat Mar 29 15:56:19 2025 +0800
+
+    fix: 修复K8s环境配置问题 - 添加IS_K8S环境变量支持 - 修复后端服务连接Neo4j的配置 - 优化k8s服务发现配置
+
+[33mcommit a246a926c043d1f4eb93b20a27e4757f0d330789[m
+Author: rookie不熬夜 <oncwnuC2v3Mp1hQ4PEXGHtHjYDdY@git.weixin.qq.com>
+Date:   Sat Mar 29 15:38:59 2025 +0800
+
+    fix: 修复K8s环境配置问题 - 添加IS_K8S环境变量支持 - 修复后端服务连接Neo4j的配置 - 优化k8s服务发现配置

@@ -2,35 +2,35 @@
 FROM python:3.9
 
 # 设置工作目录
-WORKDIR /app
+WORKDIR /myproject
 
-# 设置 Python 环境变量
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# 设置 pip 镜像源
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
-    && pip config set install.trusted-host mirrors.aliyun.com
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    default-libmysqlclient-dev \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
+RUN apt-get update \
+    && apt-get install -y \
+        gcc \
+        g++ \
+        make \
+        libpq-dev \
+        default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制项目文件
-COPY requirements.txt .
-COPY manage.py .
-COPY myproject/ ./myproject/
-COPY backend/knowledge_graph/ ./knowledge_graph/
-COPY myapp/ ./myapp/
+# 配置pip镜像源
+#RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 升级pip
+RUN pip install --upgrade pip
+
+# 复制整个项目
+COPY . /myproject/
+
+# 安装依赖
+RUN pip install -r requirements.txt
 
 # 暴露端口
 EXPOSE 8000

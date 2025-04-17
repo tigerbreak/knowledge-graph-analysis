@@ -175,4 +175,166 @@ npm run dev
 
 - 项目维护者：[您的名字]
 - 邮箱：[您的邮箱]
-- 项目链接：[https://github.com/tigerbreak/knowledge-graph-analysis](https://github.com/tigerbreak/knowledge-graph-analysis) 
+- 项目链接：[https://github.com/tigerbreak/knowledge-graph-analysis](https://github.com/tigerbreak/knowledge-graph-analysis)
+
+## 部署说明
+
+### 一、数据库部署（一次性）
+
+#### 1. 数据库服务器要求
+- 操作系统：CentOS 7+
+- 内存：至少 1GB
+- 磁盘：至少 10GB 可用空间
+- Docker 版本：20.10+
+- Docker Compose 版本：2.0+
+
+#### 2. 数据库环境变量
+在数据库服务器的 GitHub Secrets 中配置：
+```bash
+# 服务器配置
+DB_SERVER_IP=        # 数据库服务器IP
+DB_SERVER_USER=      # 服务器用户名
+DB_SERVER_PASSWORD=  # 服务器密码
+
+# Neo4j配置
+NEO4J_USER=          # Neo4j用户名，默认为 neo4j
+NEO4J_PASSWORD=      # Neo4j密码，默认为 root123321
+
+# MySQL配置
+MYSQL_ROOT_PASSWORD= # MySQL root密码，默认为 123456
+MYSQL_DATABASE=      # MySQL数据库名，默认为 knowledge_graph
+MYSQL_USER=          # MySQL用户名，默认为 root
+MYSQL_PASSWORD=      # MySQL密码，默认为 123456
+MYSQL_PORT=          # MySQL端口，默认为 3307
+```
+
+#### 3. 数据库部署流程
+
+1. **准备工作**
+   - 安装 Docker 和 Docker Compose
+   - 开放必要端口（MySQL: 3307, Neo4j: 7474, 7687）
+   - 创建数据目录：
+     ```bash
+     mkdir -p /data/mysql
+     mkdir -p /data/neo4j
+     ```
+
+2. **自动部署触发**
+   - 推送到 `release/v1.0.3` 分支时自动触发
+   - 当以下文件发生变化时触发：
+     - `docker/docker-compose.db.yml`
+     - `deploy/deploy-db.sh`
+   - 或手动在 GitHub Actions 中触发
+
+3. **部署步骤**
+   - 自动连接到数据库服务器
+   - 复制部署文件到服务器
+   - 执行部署脚本
+   - 验证服务状态
+
+4. **验证部署**
+   - 检查 MySQL：
+     ```bash
+     docker exec -it mysql mysql -uroot -p
+     ```
+   - 检查 Neo4j：
+     ```bash
+     curl http://localhost:7474
+     ```
+   - 检查容器状态：
+     ```bash
+     docker ps
+     ```
+
+5. **部署后配置**
+   - 设置数据库备份策略
+   - 配置监控告警
+   - 设置资源限制
+   - 配置安全策略
+
+### 二、前后端部署（持续迭代）
+
+#### 1. 应用服务器要求
+- 操作系统：CentOS 7+
+- 内存：至少 1GB
+- 磁盘：至少 5GB 可用空间
+- Docker 版本：20.10+
+- Docker Compose 版本：2.0+
+
+#### 2. 应用环境变量
+在应用服务器的 GitHub Secrets 中配置：
+```bash
+# 服务器配置
+SERVER_IP=           # 部署服务器IP
+SERVER_USER=         # 服务器用户名
+SERVER_PASSWORD=     # 服务器密码
+
+# 项目配置
+PROJECT_NAME=        # 项目名称，默认为 myproject
+
+# 阿里云容器镜像服务配置
+ALIYUN_REGISTRY=     # 镜像仓库地址，默认为 registry.cn-hongkong.aliyuncs.com
+ALIYUN_NAMESPACE=    # 命名空间，默认为 tongihttigerbreak
+ALIYUN_REPOSITORY=   # 仓库名称，默认为 tigerhouse
+ALIYUN_USERNAME=     # 阿里云账号
+ALIYUN_PASSWORD=     # 阿里云密码
+
+# 数据库连接配置
+DB_SERVER_IP=        # 数据库服务器IP
+```
+
+#### 3. 自动部署配置
+
+1. **触发条件**
+   - 推送到 `release/v1.0.3` 分支时自动触发
+   - 手动在 GitHub Actions 中触发
+   - 仅当以下文件发生变化时触发：
+     - `docker/docker-compose.yml`
+     - `deploy/deploy.sh`
+     - `frontend/` 目录下的文件
+     - `backend/` 目录下的文件
+
+2. **部署流程**
+   - 自动连接到部署服务器
+   - 替换环境变量
+   - 拉取最新镜像
+   - 停止并删除旧容器
+   - 启动新容器
+   - 清理旧镜像
+
+3. **验证部署**
+   - 检查容器状态：`docker-compose ps`
+   - 检查服务日志：`docker-compose logs`
+   - 访问前端页面：`http://服务器IP`
+   - 访问后端API：`http://服务器IP:8000`
+
+### 三、注意事项
+
+1. **数据库维护**
+   - 定期备份数据
+   - 监控数据库性能
+   - 及时更新数据库版本
+   - 设置合适的资源限制
+
+2. **应用维护**
+   - 定期更新应用版本
+   - 监控应用性能
+   - 设置日志轮转
+   - 配置监控告警
+
+3. **安全建议**
+   - 使用强密码
+   - 限制服务器访问IP
+   - 启用防火墙
+   - 定期更新系统和依赖
+   - 配置 SSL 证书
+
+4. **故障处理**
+   - 保存部署日志
+   - 建立回滚机制
+   - 准备应急方案
+   - 定期进行故障演练
+
+## 开发环境配置
+
+// ... existing code ... 

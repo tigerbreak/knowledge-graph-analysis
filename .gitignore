@@ -58,6 +58,7 @@ yarn-error.log
 # Docker
 .docker/
 docker-compose.override.yml
+docker/packages/torch-*.whl
 
 # 系统文件
 .DS_Store
