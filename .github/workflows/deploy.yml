@@ -9,7 +9,7 @@ on:
     paths:
       - 'frontend/**'
       - 'backend/**'
-      - 'docker/**'
+      - 'docker/!(docker-compose.db.yml)'
       - 'deploy/**'
       - 'myproject/**'
       - '.github/workflows/deploy.yml'
