@@ -20,17 +20,18 @@ export default {
 
 <style scoped>
 .default-layout {
-  min-height: 100vh;
+  min-height: 100vh;  /* 至少铺满视口高度 */
+  height: 100%;      /* 可以随内容增长 */
   display: flex;
   flex-direction: column;
 }
 
 .main-content {
   flex: 1;
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  display: flex;        /* 添加 flex 布局 */
+  flex-direction: column;  /* 垂直方向排列 */
+  height: 100%;        /* 确保高度传递 */
 }
 </style> 

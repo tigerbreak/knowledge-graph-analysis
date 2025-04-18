@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="main-content">
+    <div class="panel-container">
       <!-- 左侧面板 - 20% -->
       <div class="left-panel">
         <!-- 作品-文章导航树 -->
@@ -551,16 +551,20 @@ export default {
 <style scoped>
 .container {
   width: 100%;
-  min-height: calc(100vh - 64px);
+  flex: 1;         /* 继承父元素的 flex 特性 */
   padding: 20px;
   box-sizing: border-box;
   background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;   /* 防止内容溢出 */
 }
 
-.main-content {
+.panel-container {
   display: flex;
   gap: 20px;
-  height: 100%;
+  flex: 1;  /* 占满剩余空间 */
+  min-height: 0;  /* 防止 flex 子元素溢出 */
 }
 
 .left-panel {
