@@ -29,7 +29,7 @@
       </el-col>
 
       <el-col :xs="24" :sm="12" :md="8">
-        <el-card class="feature-card" @click="$router.push('/knowledge-graph')">
+        <el-card class="feature-card" @click="$router.push('/work-analysis')">
           <template #header>
             <div class="card-header">
               <h3>知识图谱</h3>
