@@ -1,6 +1,6 @@
 <template>
-  <div class="container">
-    <div class="main-content">
+  <div class="work-analysis">
+    <div class="panel-container">
       <!-- 左侧面板 - 20% -->
       <div class="left-panel">
         <div class="header">
@@ -376,25 +376,32 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.container {
+.work-analysis {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  flex: 1;                /* 继承父元素高度 */
+  display: flex;          /* 使用 flex 布局 */
+  flex-direction: column; /* 垂直方向排列 */
+  min-height: 0;         /* 防止溢出 */
+  background: #fff;
 }
 
-.main-content {
+.panel-container {
   display: flex;
-  height: 100%;
+  flex: 1;              /* 占满剩余空间 */
+  gap: 20px;
+  padding: 20px;
+  min-height: 0;        /* 防止溢出 */
 }
 
 .left-panel {
   width: 20%;
-  min-width: 250px;
+  /* min-width: 250px; */
   background: #fff;
   border-right: 1px solid #eee;
   display: flex;
   flex-direction: column;
   padding: 20px;
+  min-height: 0;        /* 防止溢出 */
 }
 
 .right-panel {
@@ -402,6 +409,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: #fff;
+  min-height: 0;        /* 防止溢出 */
 }
 
 .header {
