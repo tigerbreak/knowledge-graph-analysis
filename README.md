@@ -1,5 +1,11 @@
 # 知识图谱分析系统
 
+[![GitHub release](https://img.shields.io/github/release/tigerbreak/knowledge-graph-analysis.svg)](https://github.com/tigerbreak/knowledge-graph-analysis/releases)
+[![Build Status](https://github.com/tigerbreak/knowledge-graph-analysis/actions/workflows/deploy.yml/badge.svg)](https://github.com/tigerbreak/knowledge-graph-analysis/actions)
+[![License](https://img.shields.io/github/license/tigerbreak/knowledge-graph-analysis)](https://github.com/tigerbreak/knowledge-graph-analysis/blob/main/LICENSE)
+
+> 在线演示地址：http://45.192.100.236/
+
 一个基于深度学习的文学作品知识图谱分析系统，能够自动分析文本内容，提取人物、势力、事件等信息，并以知识图谱的形式可视化展示。
 
 ## 功能特点
@@ -159,17 +165,39 @@ npm install
 npm run dev
 ```
 
-## 贡献指南
+## 项目截图
 
-1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
+### 1. 系统首页
+![系统首页](docs/images/homepage.png)
+> 系统首页展示最新的分析结果和统计信息，支持快速开始新的分析任务
 
-## 许可证
+### 2. 文章分析 - 图谱模式
+![文章分析图谱模式](docs/images/article-graph.png)
+> 以图谱形式展示文章中的实体关系，支持节点拖拽、缩放和关系探索
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+### 3. 文章分析 - 表格模式
+![文章分析表格模式](docs/images/article-table.png)
+> 以表格形式展示分析结果，支持排序、筛选和导出数据
+
+### 4. 人物知识图谱
+![人物知识图谱](docs/images/character-graph.png)
+> 展示人物之间的复杂关系网络，支持多维度分析和关系路径探索
+
+## 更新日志
+
+### v1.0.3 (2024-01-09)
+- 优化数据库连接配置
+- 修复部署流水线触发问题
+- 更新项目文档
+
+### v1.0.2 (2024-01-08)
+- 添加 Docker 部署支持
+- 优化前端界面
+- 修复已知问题
+
+### v1.0.1 (2024-01-07)
+- 初始版本发布
+- 支持基本的文本分析和知识图谱功能
 
 ## 联系方式
 
@@ -245,7 +273,6 @@ MYSQL_PORT=          # MySQL端口，默认为 3307
      ```bash
      docker ps
      ```
-
 5. **部署后配置**
    - 设置数据库备份策略
    - 配置监控告警
