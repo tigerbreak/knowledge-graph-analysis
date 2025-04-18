@@ -15,7 +15,7 @@ log() {
 }
 
 # 检查必要的环境变量
-if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_REGISTRY" ] || [ -z "$ALIYUN_NAMESPACE" ] || [ -z "$ALIYUN_REPOSITORY" ] || [ -z "$ALIYUN_USERNAME" ] || [ -z "$ALIYUN_PASSWORD" ] || [ -z "$DB_SERVER_IP" ]; then
+if [ -z "$SERVER_IP" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_PASSWORD" ] || [ -z "$PROJECT_NAME" ] || [ -z "$ALIYUN_REGISTRY" ] || [ -z "$ALIYUN_NAMESPACE" ] || [ -z "$ALIYUN_REPOSITORY" ] || [ -z "$ALIYUN_USERNAME" ] || [ -z "$ALIYUN_PASSWORD" ] || [ -z "$DB_SERVER_IP" ] || [ -z "$FRONTEND_TAG" ] || [ -z "$BACKEND_TAG" ]; then
     echo "错误：缺少必要的环境变量"
     exit 1
 fi
@@ -36,6 +36,8 @@ log "项目名称：$PROJECT_NAME"
 log "项目目录：$PROJECT_DIR"
 log "Docker镜像：$DOCKER_IMAGE"
 log "数据库服务器IP：$DB_SERVER_IP"
+log "前端版本：$FRONTEND_TAG"
+log "后端版本：$BACKEND_TAG"
 
 # 获取系统信息
 log "系统信息："
@@ -51,10 +53,12 @@ log "当前时间：$(date)"
 deploy() {
     sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
         # 设置环境变量
-        export ALIYUN_REGISTRY='registry.cn-hongkong.aliyuncs.com'
-        export ALIYUN_NAMESPACE='tongihttigerbreak'
-        export ALIYUN_REPOSITORY='tigerhouse'
-        export PROJECT_NAME='myproject'
+        export FRONTEND_TAG='${FRONTEND_TAG}'
+        export BACKEND_TAG='${BACKEND_TAG}'
+        export ALIYUN_REGISTRY='${ALIYUN_REGISTRY}'
+        export ALIYUN_NAMESPACE='${ALIYUN_NAMESPACE}'
+        export ALIYUN_REPOSITORY='${ALIYUN_REPOSITORY}'
+        export PROJECT_NAME='${PROJECT_NAME}'
         export PROJECT_DIR="/root/\$PROJECT_NAME"
         export DOCKER_IMAGE="\$ALIYUN_REGISTRY/\$ALIYUN_NAMESPACE/\$ALIYUN_REPOSITORY"
         
@@ -96,28 +100,22 @@ deploy() {
 
         # 显示拉取前的镜像列表
         log "拉取前的镜像列表："
-        docker images | grep "$DOCKER_IMAGE" || true
+        docker images | grep "\$DOCKER_IMAGE" || true
 
         # 打印完整的镜像引用
-        log "DOCKER_IMAGE 值: $DOCKER_IMAGE"
-        log "后端镜像完整引用: ${DOCKER_IMAGE}:backend-latest"
-        log "前端镜像完整引用: ${DOCKER_IMAGE}:frontend-latest"
+        log "DOCKER_IMAGE 值: \$DOCKER_IMAGE"
+        log "后端镜像完整引用: \${DOCKER_IMAGE}:backend-\$BACKEND_TAG"
+        log "前端镜像完整引用: \${DOCKER_IMAGE}:frontend-\$FRONTEND_TAG"
 
-        # 并行拉取最新镜像并显示进度
+        # 拉取指定版本的镜像
         log "=== 开始拉取镜像 ==="
-        docker pull --progress=plain "${DOCKER_IMAGE}:backend-latest" &
-        BACKEND_PID=$!
-        
-        docker pull --progress=plain "${DOCKER_IMAGE}:frontend-latest" &
-        FRONTEND_PID=$!
-        
-        # 等待两个拉取完成
-        wait $BACKEND_PID $FRONTEND_PID
+        docker pull "\${DOCKER_IMAGE}:frontend-\$FRONTEND_TAG"
+        docker pull "\${DOCKER_IMAGE}:backend-\$BACKEND_TAG"
         echo "✅ 镜像拉取完成"
 
         # 显示拉取后的镜像信息
         log "拉取后的镜像列表："
-        docker images | grep "$DOCKER_IMAGE"
+        docker images | grep "\$DOCKER_IMAGE"
 
         # 显示镜像大小变化
         log "镜像存储信息："
@@ -128,6 +126,12 @@ deploy() {
         docker-compose ps
         docker-compose down
         echo "✅ 旧容器清理完成"
+
+        # 更新 docker-compose.yml 中的镜像标签
+        log "更新 docker-compose.yml 中的镜像标签..."
+        sed -i "s|:frontend-.*|:frontend-\$FRONTEND_TAG|g" docker-compose.yml
+        sed -i "s|:backend-.*|:backend-\$BACKEND_TAG|g" docker-compose.yml
+        echo "✅ docker-compose.yml 更新完成"
 
         # 启动新容器
         log "启动新容器..."
@@ -146,26 +150,9 @@ deploy() {
         if docker-compose ps | grep -q "Up"; then
             log "新容器启动成功，开始清理旧镜像..."
             
-            # 获取当前使用的镜像ID
-            CURRENT_IMAGES=$(docker-compose images -q)
-            
-            # 显示要清理的镜像信息
-            log "准备清理的镜像："
-            docker images | grep "$DOCKER_IMAGE" | grep -v "latest" || true
-            
-            # 获取所有镜像标签并按时间排序
-            ALL_TAGS=$(docker images --format "{{.Tag}}" --filter "reference=$DOCKER_IMAGE" | grep -v "latest" | sort -r)
-            
-            # 保留最新版本，删除其他所有版本
-            if [ -n "$ALL_TAGS" ]; then
-                log "开始清理旧镜像..."
-                # 跳过第一个标签（最新版本），删除其余所有标签
-                echo "$ALL_TAGS" | tail -n +2 | while read tag; do
-                    log "删除镜像标签: $tag"
-                    docker rmi "$DOCKER_IMAGE:$tag" || true
-                done
-            fi
-            
+            # 清理不再使用的镜像
+            log "清理旧镜像..."
+            docker images --format "{{.Repository}}:{{.Tag}}" | grep "\$DOCKER_IMAGE" | grep -v "\$FRONTEND_TAG" | grep -v "\$BACKEND_TAG" | xargs -r docker rmi -f
             log "✅ 旧镜像清理完成"
 
             # 显示最终状态
@@ -173,7 +160,7 @@ deploy() {
             log "1. 容器状态："
             docker-compose ps
             log "2. 剩余镜像："
-            docker images | grep "$DOCKER_IMAGE"
+            docker images | grep "\$DOCKER_IMAGE"
             log "3. 系统存储状态："
             df -h | grep /dev/vda1
             docker system df -v
