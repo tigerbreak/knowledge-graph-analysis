@@ -183,28 +183,6 @@ npm run dev
 ![人物知识图谱](docs/images/character-graph.png)
 > 展示人物之间的复杂关系网络，支持多维度分析和关系路径探索
 
-## 更新日志
-
-### v1.0.3 (2024-01-09)
-- 优化数据库连接配置
-- 修复部署流水线触发问题
-- 更新项目文档
-
-### v1.0.2 (2024-01-08)
-- 添加 Docker 部署支持
-- 优化前端界面
-- 修复已知问题
-
-### v1.0.1 (2024-01-07)
-- 初始版本发布
-- 支持基本的文本分析和知识图谱功能
-
-## 联系方式
-
-- 项目维护者：[您的名字]
-- 邮箱：[您的邮箱]
-- 项目链接：[https://github.com/tigerbreak/knowledge-graph-analysis](https://github.com/tigerbreak/knowledge-graph-analysis)
-
 ## 部署说明
 
 ### 一、数据库部署（一次性）
