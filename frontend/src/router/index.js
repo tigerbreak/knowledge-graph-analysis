@@ -51,11 +51,6 @@ const routes = [
         component: Settings
       }
     ]
-  },
-  {
-    path: '/knowledge-graph',
-    name: 'KnowledgeGraph',
-    component: () => import('../components/KnowledgeGraph.vue')
   }
 ]
 

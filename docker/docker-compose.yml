@@ -16,7 +16,7 @@ x-mysql-variables: &mysql-variables
 
 services:
   frontend:
-    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:frontend-latest
+    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:frontend-${FRONTEND_TAG:-latest}
     container_name: knowledge_graph_frontend  # 前端容器名，可根据项目修改
     ports:
       - "80:80"  # 前端端口映射，可根据需要修改
@@ -28,7 +28,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
 
   backend:
-    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:backend-latest
+    image: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${ALIYUN_REPOSITORY}:backend-${BACKEND_TAG:-latest}
     container_name: knowledge_graph_backend
     ports:
       - "8000:8000"  # 后端端口映射，可根据需要修改

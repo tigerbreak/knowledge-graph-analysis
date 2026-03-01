@@ -117,8 +117,29 @@ jobs:
   build-images:
     needs: init-server
     runs-on: ubuntu-latest
+    outputs:
+      frontend_sha: ${{ steps.get_frontend_sha.outputs.sha }}
+      backend_sha: ${{ steps.get_backend_sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取完整的 git 历史
+
+      # 获取前端最新 commit SHA
+      - name: Get Frontend SHA
+        id: get_frontend_sha
+        run: |
+          FRONTEND_SHA=$(git log -n 1 --format="%H" -- frontend/)
+          echo "sha=${FRONTEND_SHA::7}" >> $GITHUB_OUTPUT
+          echo "Frontend SHA: ${FRONTEND_SHA::7}"
+
+      # 获取后端最新 commit SHA
+      - name: Get Backend SHA
+        id: get_backend_sha
+        run: |
+          BACKEND_SHA=$(git log -n 1 --format="%H" -- backend/)
+          echo "sha=${BACKEND_SHA::7}" >> $GITHUB_OUTPUT
+          echo "Backend SHA: ${BACKEND_SHA::7}"
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -130,24 +151,16 @@ jobs:
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
 
-      # 并行构建前端和后端镜像
+      # 构建和推送镜像
       - name: Build and push images
         run: |
-          # 构建后端镜像
-          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest -f docker/backend.Dockerfile . &
-          BACKEND_PID=$!
+          # 构建并推送前端镜像
+          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-${{ steps.get_frontend_sha.outputs.sha }} -f docker/frontend.Dockerfile ./frontend
+          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-${{ steps.get_frontend_sha.outputs.sha }}
           
-          # 构建前端镜像
-          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest -f docker/frontend.Dockerfile ./frontend &
-          FRONTEND_PID=$!
-          
-          # 等待两个构建完成
-          wait $BACKEND_PID $FRONTEND_PID
-          
-          # 推送镜像
-          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-latest &
-          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:frontend-latest &
-          wait
+          # 构建并推送后端镜像
+          docker build -t ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-${{ steps.get_backend_sha.outputs.sha }} -f docker/backend.Dockerfile .
+          docker push ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.ALIYUN_REPOSITORY }}:backend-${{ steps.get_backend_sha.outputs.sha }}
 
   # 第三阶段：部署应用
   deploy:
@@ -172,6 +185,8 @@ jobs:
           ALIYUN_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
           ALIYUN_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+          FRONTEND_TAG: ${{ needs.build-images.outputs.frontend_sha }}
+          BACKEND_TAG: ${{ needs.build-images.outputs.backend_sha }}
         run: ./deploy/deploy.sh
 
       # 部署结果通知
